@@ -228,6 +228,73 @@ exports.saveMessage = async (req, res) => {
   }
 };
 
+exports.saveFiles = async (message) => {
+  try {
+    console.log(message);
+
+    const fileBuffer = Buffer.from(message.file.data.split(",")[1], "base64");
+    const query = `INSERT INTO files (messageId,roomId, sender, seen, fileName,fileType, Type, Data, time)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ? ,?)`;
+    const values = [
+      message.messageId,
+      message.roomId,
+      message.sender,
+      message.seen,
+      message.file.name,
+      message.file.type,
+      message.type,
+      fileBuffer,
+      message.time,
+    ];
+    conn.query(query, values, (err, result) => {
+      if (err) {
+        console.error("Error inserting file into database: ", err);
+        return;
+      }
+      console.log("File stored successfully");
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+exports.getFiles = async (req, res) => {
+  const { roomId } = req.body;
+  console.log("getFiles : ",roomId);
+  try {
+    const query = `
+      SELECT messageId, roomId, time, sender, seen, fileName, fileType, Data, type
+      FROM files
+      WHERE roomId = ?
+      ORDER BY createdAt DESC`;
+
+    conn.query(query, [roomId], (err, results) => {
+      if (err) {
+        console.error("Error fetching files: ", err);
+        return res.status(500).json({ message: "Error fetching files" });
+      }
+
+      const formattedFiles = results.map((file) => ({
+        roomId: file.roomId,
+        messageId: file.messageId,
+        sender: file.sender,
+        seen: file.seen,
+        time: file.time,
+        type: file.type,
+        file: {
+          type: file.fileType,
+          name: file.fileName,
+          data: `data:${file.fileType};base64,${Buffer.from(file.Data).toString('base64')}`
+        },
+      }));
+      res.status(200).send({data:formattedFiles});
+    });
+  } catch (error) {
+    console.error("Error occurred: ", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 exports.saveMessageFromSocket = async (message) => {
   //console.log("Save Message in DB from Socket", message);
   try {
@@ -255,7 +322,7 @@ exports.getRoomMessages = async (req, res) => {
   console.log("Get Room Messages", req.body);
   try {
     const roomId = req.body.roomId;
-    const query = `select messageId ,roomId, time, sender, seen, message from messages where roomId = ? ORDER BY createdAt ASC`;
+    const query = `select messageId ,roomId, time, sender, seen, message, type   from messages where roomId = ? ORDER BY createdAt ASC`;
 
     conn.query(query, [roomId], (err, result) => {
       if (err) {
@@ -322,15 +389,13 @@ exports.getRoomsByUsername = async (req, res) => {
     console.log("Room Ids : ", roomIds);
     const query = `SELECT roomId FROM rooms WHERE username = ? `;
     const values = [username];
-    conn.query(query,values,(err,result)=>{
-      if(err){
+    conn.query(query, values, (err, result) => {
+      if (err) {
         console.log(err);
         return res.status(500).send("Error in getRoomIdsBy Username");
       }
       res.status(200).send(result);
-
-
-    })
+    });
   } catch (error) {
     console.error("Error fetching roomsIds:", error);
     res.status(500).send("Some Error Occured getRoomsByUsername");

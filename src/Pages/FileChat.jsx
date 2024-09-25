@@ -4,12 +4,12 @@ import io from "socket.io-client";
 // Assuming the server is running on localhost:5000
 //const socket = io("http://localhost:5000");
 import socket from "./sockets";
+import context from "react-bootstrap/esm/AccordionContext";
 const Chat = () => {
-  const [message, setMessage] = useState(""); // Holds the text message
-  const [file, setFile] = useState(null); // Holds the selected file
-  const [receivedItems, setReceivedItems] = useState([]); // Stores received messages and files
+  const [message, setMessage] = useState(""); 
+  const [file, setFile] = useState(null); 
+  const [receivedItems, setReceivedItems] = useState([]); 
 
-  // Handle file selection
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
@@ -25,31 +25,32 @@ const Chat = () => {
     }
   };
 
-  // Handle sending a message (text or file)
   const handleSendMessage = () => {
     if (message) {
-      // Sending a text message
+        setReceivedItems((prev) => [...prev, {type:"text",content:message}]);
+
       socket.emit("send_image", { type: "text", content: message });
-      setMessage(""); // Clear message after sending
+      setMessage(""); 
     } else if (file) {
-      // Sending a file
+        console.log("file",file);
       socket.emit("send_file", { type: "file", file });
-      setFile(null); // Clear file after sending
+      setFile(null); 
     }
   };
 
   useEffect(() => {
-    // Receive messages or files from the server
     socket.on("receive_item", (data) => {
-      setReceivedItems((prevItems) => [...prevItems, data]); // Append received data (message or file)
+        
+        console.log("file",data);
+        console.log("all ",receivedItems);
+      setReceivedItems((prevItems) => [...prevItems, data]); 
     });
 
     return () => {
-      socket.off("receive_item"); // Clean up the socket listener on component unmount
+      socket.off("receive_item"); 
     };
   }, []);
 
-  // Function to handle file download when clicked
   const handleFileDownload = (file) => {
     const link = document.createElement("a");
     link.href = file.data;
@@ -61,7 +62,6 @@ const Chat = () => {
     <div>
       <h1>Chat with Files</h1>
 
-      {/* Text message input */}
       <input
         type="text"
         value={message}
@@ -69,10 +69,8 @@ const Chat = () => {
         placeholder="Type a message"
       />
       
-      {/* File upload */}
       <input type="file" onChange={handleFileSelect} />
 
-      {/* Send button */}
       <button onClick={handleSendMessage}>Send</button>
 
       <h2>Received Messages and Files</h2>
@@ -80,10 +78,8 @@ const Chat = () => {
         {receivedItems.map((item, index) => (
           <div key={index}>
             {item.type === "text" ? (
-              // Display text message
               <p>{item.content}</p>
             ) : (
-              // Display file with download option
               <div>
                 <p>{item.file.name}</p>
                 <button onClick={() => handleFileDownload(item.file)}>Download</button>

@@ -15,7 +15,7 @@
   .upper-division {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
   }
   
   .email {
@@ -66,10 +66,10 @@
   
 .small-tag {
   position: absolute;
-  bottom: 5px; /* Adjust as needed */
-  right: 5px; /* Adjust as needed */
-  font-size: 0.75rem; /* Smaller font size */
-  color: gray; /* Or any color you prefer */
+  bottom: 5px; 
+  right: 5px;
+  font-size: 0.75rem;
+  color: gray;
 }
 
 .chat-parent-container {
@@ -107,4 +107,29 @@
   border-radius: 10px;
   border: 1px solid #ddd;
   height: 150px;
+}
+
+
+
+
+
+
+.file-select-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.file-select-modal h2 {
+  margin: 0 0 10px;
+}
+
+.file-select-modal button {
+  margin-right: 10px;
 }

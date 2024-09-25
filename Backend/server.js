@@ -29,7 +29,7 @@ io.on("connection", (socket) => {
   socket.on("selfroom", async (username) => {
     try {
       console.log("Joining username: ", username);
-      const ids = await controller.getRoomIds(username);
+      const ids = await controller.getRoomIds();
       console.log("Room IDs: ", ids);
       socket.join(username);
       ids.forEach((roomId) => {
@@ -107,12 +107,14 @@ io.on("connection", (socket) => {
 
 
   socket.on("send_image", (data) => {
-    io.emit("receive_item", data); // Broadcast the text message to all clients
+    socket.broadcast.emit("receive_item", data);
   });
 
   // Handle sending a file
   socket.on("send_file", (data) => {
-    io.emit("receive_item", data); // Broadcast the file to all clients
+    console.log("sending file : ",data);
+    socket.broadcast.emit("receive_item", data); 
+    controller.saveFiles(data);
   });
 });
 

@@ -1,5 +1,5 @@
 import React from "react";
-import "./chat.css"; // Import the CSS file
+import "./chat.css"; 
 
 const ChatMessage = (props) => {
   return (

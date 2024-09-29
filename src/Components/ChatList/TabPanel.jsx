@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import ChatRoom from "../Chat/chatRoom";
 const TabPanelC = (props) => {
-    const { children, value, index, roomid,UpdateRoomLastMessage, ...other } = props;
+    const { children, value, index, roomid,UpdateRoomLastMessage,updateNewMessageCount, ...other } = props;
     useEffect(()=>console.log())
     if (!roomid) {
       return <></>; 
@@ -13,7 +13,7 @@ const TabPanelC = (props) => {
         hidden={false}
         id={`vertical-tabpanel-${index}`}
       >
-        <ChatRoom roomid={roomid} UpdateRoomLastMessage = {UpdateRoomLastMessage} />
+        <ChatRoom roomid={roomid} UpdateRoomLastMessage = {UpdateRoomLastMessage} updateNewMessageCount = {updateNewMessageCount} />
       </div>
     );
   };

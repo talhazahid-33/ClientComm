@@ -2,9 +2,11 @@ import { configureStore,combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage'; 
 import RoomsSlice from './RoomsSlice';
+import messagesSlice from './messagesSlice';
 
 const rootReducer = combineReducers({
     rooms: RoomsSlice,
+    messages:messagesSlice,
   });
 
 const persistConfig = {

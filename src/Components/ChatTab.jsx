@@ -10,15 +10,15 @@ import RoomCreation from "./ChatList/usersDialog";
 import ChatUsersList from "./ChatList/ChatUsers";
 import socket from "../Pages/sockets";
 import { useEffect } from "react";
-import { useSelector,useDispatch } from "react-redux";
-import { populateRooms,printRooms } from "../Redux/RoomsSlice";
+import { useSelector, useDispatch } from "react-redux";
+import { populateRooms, printRooms } from "../Redux/RoomsSlice";
 
 export default function ChatTab() {
   const [value, setValue] = React.useState(0);
   const [rooms, setRooms] = React.useState([]);
   const [roomID, setRoomID] = useState();
   const [usernames, setUsernames] = useState([]);
-  const [roomUsername,setRoomUsername] = useState([]);
+  const [roomUsername, setRoomUsername] = useState([]);
 
   const email = localStorage.getItem("email");
   const username = localStorage.getItem("username");
@@ -26,17 +26,33 @@ export default function ChatTab() {
   //const selector = useSelector();
 
   const handleChange = (event, newValue) => {
-    setRoomID(() => rooms[newValue].roomId);
     setValue(newValue);
+    setRoomID(() => rooms[newValue].roomId);
     setRoomUsername(rooms[newValue].username);
     //useSelector((state) => state.userProfile.username);
+    setRooms((prevRooms) =>
+      prevRooms.map((room) =>
+        room.roomId == rooms[newValue].roomId
+          ? { ...room, newMessages: 0 }
+          : room
+      )
+    );
   };
 
+  const updateNewMessageCount = (roomId) => {
+    console.log("Update Count : ",roomId);
+    setRooms((prevRooms) =>
+      prevRooms.map((room) =>
+        room.roomId == roomId
+          ? { ...room, newMessages: room.newMessages+1 }
+          : room
+      )
+    );
+    console.log(rooms);
+  };
 
   const createRoom = async (username2) => {
-    
-    if(!username2)
-      return;
+    if (!username2) return;
     try {
       const result = await axios.post("http://localhost:8000/createroom", {
         username1: username,
@@ -62,7 +78,7 @@ export default function ChatTab() {
 
   const getRooms = async () => {
     try {
-      const result = await axios.get("http://localhost:8000/getrooms" );
+      const result = await axios.get("http://localhost:8000/getrooms");
       if (result.status === 200) {
         setRooms(result.data.data);
       } else {
@@ -90,51 +106,46 @@ export default function ChatTab() {
     return usernames.filter((user) => user !== username);
   }
 
-  const UpdateRoomLastMessage = (roomId,msg)=>{
+  const UpdateRoomLastMessage = (roomId, msg) => {
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
         room.roomId === roomId ? { ...room, lastMessage: msg } : room
       )
     );
-  }
+  };
   React.useEffect(() => {
     getUsernames();
     getRooms();
-   
   }, []);
 
-  useEffect(()=>{
- dispatch(
-      populateRooms({
-        rooms: rooms,
-      })
-    );
-  },[rooms])
+  useEffect(() => {
+   
+  }, [rooms]);
   useEffect(() => {
     const handleInvitation = (data) => {
       console.log("Invitation Received", data);
       const room = {
-        roomId : data.roomId,
-        lastMessage:"",
-        username:data.username
-      }
+        roomId: data.roomId,
+        lastMessage: "",
+        username: data.username,
+      };
 
       socket.emit("join_room", data.roomId);
       setRooms((prevRooms) => [...prevRooms, room]);
     };
 
-    const handleRoomLastMessage = (data) =>{
-      console.log("RoomLastMessage",data);
-      UpdateRoomLastMessage(data.roomId,data.message);
-    }
+    const handleRoomLastMessage = (data) => {
+      console.log("RoomLastMessage", data);
+      UpdateRoomLastMessage(data.roomId, data.message);
+    };
 
     socket.on("invite_to_room", handleInvitation);
-    socket.on("update_room_last_message",handleRoomLastMessage);
+    socket.on("update_room_last_message", handleRoomLastMessage);
 
     return () => {
       socket.off("invite_to_room", handleInvitation);
       socket.off("join_room");
-      socket.off("update_room_last_message",handleRoomLastMessage);
+      socket.off("update_room_last_message", handleRoomLastMessage);
       socket.off("self_room");
     };
   }, [rooms]);
@@ -149,7 +160,10 @@ export default function ChatTab() {
             createRoom={createRoom}
           />
         </div>
-        <ChatUsersList room={rooms} username={!rooms ? "[]" :  roomUsername}/>
+        <ChatUsersList
+          room={rooms}
+          username={!rooms ? "[Hamza , ALi]" : roomUsername}
+        />
       </div>
 
       <Box
@@ -178,13 +192,19 @@ export default function ChatTab() {
                   username={room.username}
                   lastMessage={room.lastMessage}
                   time={room.roomId}
+                  newMessages={room.newMessages}
                 />
               }
             />
           ))}
         </Tabs>
 
-        <TabPanelC value={value} roomid={roomID} UpdateRoomLastMessage = {UpdateRoomLastMessage}></TabPanelC>
+        <TabPanelC
+          value={value}
+          roomid={roomID}
+          UpdateRoomLastMessage={UpdateRoomLastMessage}
+          updateNewMessageCount={updateNewMessageCount}
+        ></TabPanelC>
       </Box>
     </div>
   );

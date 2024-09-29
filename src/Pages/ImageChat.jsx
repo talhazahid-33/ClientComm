@@ -1,61 +1,57 @@
-import React, { useState, useEffect } from "react";
-import socket from "./sockets";
-// Assuming the server is running on localhost:5000
-//const socket = io("http://localhost:5000");
+import React, { useState } from 'react';
+import axios from 'axios';
 
 const ImageChat = () => {
-  const [image, setImage] = useState(null); // Holds the selected image
-  const [receivedImages, setReceivedImages] = useState([]); // Store received images
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [imagePath, setImagePath] = useState('');
 
   // Handle file selection
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file); // Convert image to base64
-      reader.onloadend = () => {
-        setImage(reader.result); // Set image data in state
-      };
-    }
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0]);
   };
 
-  // Send image via socket
-  const handleSendImage = () => {
-    if (image) {
-      socket.emit("send_image", { image });
-      setImage(null); // Clear selected image after sending
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setUploadStatus('Please select a file first!');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', selectedFile); 
+    try {
+      const response = await axios.post('http://localhost:8000/uploadimage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setUploadStatus('File uploaded successfully!');
+      setImagePath(response.data.filePath); 
+    } catch (error) {
+      setUploadStatus('Error uploading file: ' + error.message);
     }
   };
-
-  useEffect(() => {
-    // Receive images from the server
-    socket.on("receive_image", (data) => {
-      setReceivedImages((prevImages) => [...prevImages, data.image]); // Append received image to the array
-    });
-
-    return () => {
-      socket.off("receive_image"); // Clean up the socket listener on component unmount
-    };
-  }, []);
 
   return (
     <div>
-      <h1>Image Chat</h1>
-      
-      <input type="file" accept="image/*" onChange={handleImageSelect} />
-      {image && (
+      <h2>Upload Image</h2>
+      <form onSubmit={handleSubmit}>
+        <input type="file" onChange={handleFileChange} accept="image/*" />
+        <button type="submit">Upload</button>
+      </form>
+
+      {uploadStatus && <p>{uploadStatus}</p>}
+
+      {imagePath && (
         <div>
-          <img src={image} alt="Selected" style={{ width: "100px", height: "100px" }} />
-          <button onClick={handleSendImage}>Send Image</button>
+          <h3>Uploaded Image</h3>
+          <p>Image path: {imagePath}</p>
+          <img src={`/${imagePath}`} alt="Uploaded" style={{ maxWidth: '300px' }} />
         </div>
       )}
-      
-      <h2>Received Images</h2>
-      <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {receivedImages.map((img, index) => (
-          <img key={index} src={img} alt="Received" style={{ width: "100px", height: "100px", margin: "10px" }} />
-        ))}
-      </div>
     </div>
   );
 };

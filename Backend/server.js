@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const path = require('path')
 const http = require("http");
 const { Server } = require("socket.io");
-
 
 const controller = require("./controller");
 
@@ -10,11 +10,26 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+//app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-const routes = require('./routes');
-app.use('/', routes);
+
+
+const bodyParser = require("body-parser");
+
+
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true })); 
+app.use(bodyParser.json({ limit: '50mb' })); 
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); 
+
+
+
+
+const routes = require("./routes");
+app.use("/", routes);
+app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
 
 const io = new Server(server, {
   cors: {
@@ -40,10 +55,9 @@ io.on("connection", (socket) => {
       console.error("Error fetching room IDs: ", err);
     }
   });
-  
 
   socket.on("join_room", (roomId) => {
-    console.log(`Joining room: ${roomId}, Socket ID: ${socket.id}`);
+    console.log("Joining room: " , roomId," Socket ID: " ,socket.id);
     socket.join(roomId);
 
     //socket.to(roomId).emit("new_user_joined", { userId: socket.id });
@@ -54,57 +68,60 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("receive_message", data);
   });
 
-  socket.on("create_room",(data)=>{
-    console.log(socket.id ," joining room socket ",data);
+  socket.on("create_room", (data) => {
+    console.log(socket.id, " joining room socket ", data);
     socket.join(data.roomId);
-    socket.to("admin").emit("invite_to_room",data);
-  })
-    
-  socket.on("send_message_admin", (data) => {
-    console.log("Admin Sending Message: ", data);
-    socket.to(data.roomId).emit("receive_message", data);
+    socket.to("admin").emit("invite_to_room", data);
+
   });
 
-  socket.on("send_message",(message)=>{
-    console.log("Client sending message",message);
-    controller.saveMessageFromSocket(message);
-    socket.to("admin").emit("receive_message",message);
-  })
+  socket.on("send_message_admin", (message) => {
+    console.log("Admin Sending Message to : ", message.roomId);
+    socket.to(message.roomId).emit("receive_message", message);
+    
+    if (message.type === "text") controller.saveMessageFromSocket(message);
+    else controller.saveFileFromSocket(message);
+  });
 
+  socket.on("send_message", (message) => {
+    console.log("Client sending message", message);
+    if (message.type === "text") controller.saveMessageFromSocket(message);
+    else controller.saveFileFromSocket(message);
+    socket.to("admin").emit("receive_message", message);
+  });
 
   socket.on("get_rooms", () => {
+    console.log("getRooms");
     const rooms = Array.from(socket.rooms);
     console.log("Current joined rooms:", rooms);
   });
 
-  socket.on ("update_seen_admin",(data)=>{
-    console.log("Admin Updating seen",data);
-    socket.to(data.roomId).emit("listen_seen_update",data);
+  socket.on("update_seen_admin", (message) => {
+    console.log("Admin Updating seen", message);
+    socket.broadcast.emit("listen_seen_update", message);
+    controller.updateSeen(message.messageId);
   });
 
-  socket.on("update_seen",(message)=>{
-    console.log("Updating seen",message);
-    socket.to("admin").emit("listen_seen_update",message);
-  })
+  socket.on("update_seen", (message) => {
+    console.log("Updating seen", message);
+    socket.to("admin").emit("listen_seen_update", message);
+    controller.updateSeen(message.messageId);
+  });
 
-
-  socket.on("update_seen_for_all",(data)=>{
-    console.log("Update senn for all server ",data);
-    controller.updateSeenForAll(data.username,data.roomId);
-    socket.to(data.roomId).emit("listen_update_seen_for_all",data.username);
-
-  })
+  socket.on("update_seen_for_all", (data) => {
+    console.log("Update senn for all server ", data);
+    controller.updateSeenForAll(data.username, data.roomId);
+    socket.to(data.roomId).emit("listen_update_seen_for_all", data.username);
+  });
 
   socket.on("disconnect", (reason) => {
     console.log("Disconnected: ", socket.id, " due to ", reason);
   });
 
-
   /*socket.on("send_image", (data) => {
     io.emit("receive_image", data); // Broadcast image to all connected clients
   });
   */
-
 
   socket.on("send_image", (data) => {
     socket.broadcast.emit("receive_item", data);
@@ -112,9 +129,10 @@ io.on("connection", (socket) => {
 
   // Handle sending a file
   socket.on("send_file", (data) => {
-    console.log("sending file : ",data);
-    socket.broadcast.emit("receive_item", data); 
-    controller.saveFiles(data);
+    console.log("sending file : ", data);
+    socket.broadcast.emit("receive_item", data);
+    //controller.saveFiles(data);
+    controller.saveFileFromSocket(data);
   });
 });
 

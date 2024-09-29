@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("./controller");
+const fileController = require("./fileController");
+const fileHandler = require('./fileHandler');
 router.use(express.json());
 
 //Users
@@ -19,7 +21,13 @@ router.get("/getroomusers",controller.getUsernameOfRoom);
 router.post("/savemessage", controller.saveMessage);
 router.post("/updateseen",controller.updateSeen);
 
+router.get("/getallmessages",controller.getAllMessages);
+
 router.get("/getallusers",controller.getAllUsernames);
+
+router.post("/uploadimage",fileController.uploadDocument);
+
+router.post("/uploadimages",fileHandler.uploadFile);
 
 
 module.exports = router;

@@ -5,7 +5,6 @@ const initialState = {
     {
       roomId: "",
       lastMessage: "",
-      chatUsers: [],
       messages: [
         {
           messageId: "",
@@ -67,7 +66,7 @@ const roomSlice = createSlice({
 });
 
 export const selectChatUsersByRoomId = (state, roomId) => {
-    const room = state.rooms.find((room) => room.roomId === roomId); //
+    const room = state.rooms.find((room) => room.roomId === roomId); 
     return room ? room.chatUsers : []; 
   }
   

@@ -4,56 +4,60 @@ import ChatMessage from "./chatTile";
 import socket from "../../Pages/sockets";
 import { v4 as uuid } from "uuid";
 import FileTile from "./fileTile";
+import FileInput from "./FileInput";
+import { useSelector } from "react-redux";
+import { selectMessagesByRoomId } from "../../Redux/messagesSlice";
+import VideoTile from "./videoTile";
 
 const ChatRoom = (props) => {
-  const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
-  const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState(null);
   const [roomItems, setRoomItems] = useState([]);
+  const [roomID, setRoomID] = useState(0);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const email = localStorage.getItem("email");
   const username = localStorage.getItem("username");
   const chatContainerRef = useRef(null);
+  const messageRef = useRef(null);
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
     }
+    if (messageRef.current) {
+      messageRef.current.focus();
+    }
   }, [roomItems]);
 
   useEffect(() => {
-    //getMessages();
-    getFiles();
+    getRoomItems();
+    //console.log("Ret Msgs : ",messages);
+    //setRoomItems(messages);
+    console.log("Room ID : ", props.roomid);
+    setRoomID(props.roomid);
   }, [props.roomid]);
 
-  const populateRooms = () => {
-    const roomItems = messages.map((msg) => ({
-      type: "text",
-      message: msg,
-    }));
-    setRoomItems(roomItems);
-    console.log("roomItems ", roomItems);
-  };
   useEffect(() => {
     const handleReceiveMessage = (data) => {
       console.log("Msg Received");
-      console.log("receiving socket Message ", data);
+      //console.log("receiving socket Message ", data.roomId,props.roomid,roomID);
+      //console.log(roomID== data.roomId);
 
-      if (data.roomId == props.roomid) {
+      if (data.roomId === props.roomid) {
         console.log("Calling Update Seen");
-        socket.emit("update_seen", {
-          roomId: props.roomid,
-          messageId: data.messageId,
-        });
-        setMessages((prevMessages) => [...prevMessages, data]);
+        socket.emit("update_seen_admin", data);
         setRoomItems((prevItems) => [...prevItems, data]);
-      } else console.log("Message belongs to room ", data.roomId);
+      } else {
+        console.log("Message belongs to room ", data.roomId);
+        props.updateNewMessageCount(data.roomId);
+      }
     };
 
     const handleSeenUpdate = (data) => {
       console.log("handleSeenUpdate ", data);
-      setMessages((prevMessages) =>
+      setRoomItems((prevMessages) =>
         prevMessages.map((message) =>
           message.messageId == data.messageId
             ? { ...message, seen: true }
@@ -64,13 +68,6 @@ const ChatRoom = (props) => {
 
     const handleSeenUpdateForAll = (data) => {
       console.log("Handle seen update for All", data);
-      setMessages((prevMessages) =>
-        prevMessages.map((message) =>
-          message.sender !== data.username
-            ? { ...message, seen: true }
-            : message
-        )
-      );
     };
 
     socket.on("receive_message", handleReceiveMessage);
@@ -87,7 +84,27 @@ const ChatRoom = (props) => {
       socket.off("listen_seen_update", handleSeenUpdate);
       socket.off("listen_update_seen_for_all", handleSeenUpdateForAll);
     };
-  }, [messages]);
+  }, [roomItems, props.roomid]);
+
+  const getRoomItems = async () => {
+    try {
+      const result = await axios.post("http://localhost:8000/getmessages", {
+        roomId: props.roomid,
+      });
+      if (result.status === 200) {
+        console.log(result.data);
+        setRoomItems(result.data.data);
+        socket.emit("update_seen_for_all", {
+          username: username,
+          roomId: props.roomid,
+        });
+      } else {
+        console.log("DB status Error in getRoomItems");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const getCurrentTime = () => {
     const now = new Date();
@@ -99,131 +116,80 @@ const ChatRoom = (props) => {
 
     return now.toLocaleTimeString("en-US", options);
   };
-  const updateSeen = async (messageId) => {
-    try {
-      const result = await axios.post("http://localhost:8000/updateseen", {
-        messageId: messageId,
-      });
-      if (result.status === 200) console.log("Seen status updated");
-      else console.log("DB error occured in seen update");
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const saveMessage = async (newMessage) => {
-    try {
-      const result = await axios.post(
-        "http://localhost:8000/savemessage",
-        newMessage
-      );
-      if (result.status === 200) {
-        console.log("Message Saved");
-      } else {
-        console.log("Error Saving Messages");
-      }
-    } catch (error) {}
-  };
+
   const sendMessage = async () => {
     const time = getCurrentTime();
-    if (file) {
+    try {
+      if (selectedFile) {
+        const path = await uploadFile();
+
+        console.log("Path : ", path);
+        const newMessage = {
+          messageId: uuid(),
+          sender: username,
+          seen: false,
+          roomId: props.roomid,
+          fileType: selectedFile.type,
+          message: null,
+          name: selectedFile.name,
+          data: path.replace(/\\/g, "/"),
+          time: time,
+          type: fileType,
+        };
+        setRoomItems((prevItems) => [...prevItems, newMessage]);
+        console.log("file : ", selectedFile);
+        socket.emit("send_message_admin", newMessage);
+        props.UpdateRoomLastMessage(props.roomid, selectedFile.name);
+        setSelectedFile(null);
+        return;
+      }
+      if (message === "") return;
       const newMessage = {
         messageId: uuid(),
+        type: "text",
         sender: username,
         seen: false,
         roomId: props.roomid,
-        file: file,
+        message: message,
         time: time,
-        type: "file",
+        data: null,
+        fileType: null,
+        name: null,
       };
-      setRoomItems((prevItems) => [...prevItems, newMessage]);
-      console.log("file", file);
-      socket.emit("send_file", newMessage);
-      setFile(null);
-      return;
-    }
-    if (message === "") return;
-    const newMessage = {
-      messageId: uuid(),
-      type: "text",
-      sender: username,
-      seen: false,
-      roomId: props.roomid,
-      message: message,
-      time: time,
-    };
-    try {
       socket.emit("send_message_admin", newMessage);
-      //setMessages((prevMsgs) => [...prevMsgs, newMessage]);
-
       setRoomItems((prevItems) => [...prevItems, newMessage]);
-      saveMessage(newMessage);
       props.UpdateRoomLastMessage(props.roomid, newMessage.message);
       setMessage("");
     } catch (error) {
       console.log("Error sending Message");
     }
   };
-  const getRoomsList = () => {
-    socket.emit("get_rooms");
 
-    return () => {
-      socket.off("rooms_list");
-    };
+  const handleSelectedFile = (type, file) => {
+    setSelectedFile(file);
+    setFileType(type);
   };
-
-  const getFiles = async()=>{
-    try{
-      const result = await axios.post("http://localhost:8000/getfiles",{roomId:props.roomid});
-      if(result.status === 200){
-        console.log(result.data);
-        setRoomItems(result.data.data);
-
-      }
-      else{
-        console.log("DB status Error in getFiles");
-      }
-
-    }catch(error){
-      console.log(error);
+  const uploadFile = async () => {
+    if (!selectedFile) {
+      console.log("Empty File");
+      return;
     }
-  }
-
-  const getMessages = async () => {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
     try {
-      console.log("Passig RID ", props.roomid);
-      const result = await axios.post("http://localhost:8000/getmessages", {
-        roomId: props.roomid,
-      });
-      if (result.status === 200) {
-        const roomItems = result.data.data.map((msg) => ({
-          type: "text",
-          message: msg,
-        }));
-        setRoomItems(result.data.data);
-        //setMessages(result.data.data);
+      const response = await axios.post(
+        "http://localhost:8000/uploadimage",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-        socket.emit("update_seen_for_all", {
-          username: username,
-          roomId: props.roomid,
-        });
-      } else {
-        console.log("Error receiving Messages");
-      }
-    } catch (error) {}
-  };
-
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = () => {
-        setFile({
-          name: selectedFile.name,
-          type: selectedFile.type,
-          data: reader.result,
-        });
-      };
+      return response.data.filePath;
+    } catch (error) {
+      console.log("Error uploading file: " + error.message);
     }
   };
 
@@ -246,8 +212,10 @@ const ChatRoom = (props) => {
             return (
               <FileTile
                 key={index}
-                file={msg.file}
+                path={msg.data}
+                type={msg.type}
                 username={msg.sender}
+                name={msg.name}
                 time={msg.time}
                 seen={msg.seen}
                 alignReverse={username === msg.sender}
@@ -263,22 +231,29 @@ const ChatRoom = (props) => {
             type="text"
             placeholder="Type Something "
             value={message}
+            ref={messageRef}
             onChange={(e) => setMessage(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
           ></input>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.png,.JPEG"
-            onChange={handleFileSelect}
-          />
+          <FileInput handleSelectedFile={handleSelectedFile} />
         </div>
         <br />
         <button className="btn btn-primary" onClick={sendMessage}>
           Send
         </button>
-        {<button onClick={populateRooms}>Check Rooms </button>}
+        {
+          <button
+            onClick={() => {
+              console.log(props.roomid);
+            }}
+          >
+            Check Rooms{" "}
+          </button>
+        }
       </div>
     </div>
   );
 };
-
 export default ChatRoom;

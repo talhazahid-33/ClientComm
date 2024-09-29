@@ -57,19 +57,6 @@ exports.signup = (req, res) => {
     res.status(500).json("Error");
   }
 };
-async function insertUsername(roomId, username) {
-  const query = `Insert into chatusers (roomId , username) Values (? , ? )`;
-  try {
-    conn.query(query, [roomId, username], (err, result) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-    });
-  } catch (e) {
-    console.log(e);
-  }
-}
 
 exports.createRoom = async (req, res) => {
   console.log("create room", req.body);
@@ -298,14 +285,15 @@ exports.getFiles = async (req, res) => {
 exports.saveMessageFromSocket = async (message) => {
   //console.log("Save Message in DB from Socket", message);
   try {
-    const query = `insert into messages (messageId,roomid,time,sender,seen,message) values (?,?,?,?,?,?)`;
+    const query = `insert into messages (messageId,roomid,time,sender,seen,message,type) values (?,?,?,?,?,?,?)`;
     const values = [
       message.messageId,
       message.roomId,
       message.time,
       message.sender,
-      0,
+      message.seen,
       message.message,
+      "text",
     ];
     conn.query(query, values, (err, result) => {
       if (err) {
@@ -318,11 +306,40 @@ exports.saveMessageFromSocket = async (message) => {
   }
 };
 
+
+exports.saveFileFromSocket = async (message) => {
+  //console.log("Save File in DB from Socket", message);
+  try {
+    console.log("saving File: ");
+    //const fileBuffer = Buffer.from(message.data, "base64");
+    const query = `insert into messages (messageId,roomid,time,sender,seen,type,fileType,name,data) values (?,?,?,?,?,?,?,?,?)`;
+    const values = [
+      message.messageId,
+      message.roomId,
+      message.time,
+      message.sender,
+      message.seen,
+      message.type,
+      message.fileType,
+      message.name,
+      message.data,
+    ];
+    conn.query(query, values, (err, result) => {
+      if (err) {
+        console.log("Error Query saving messages", err);
+      }
+      //updateRoomLastMessage(message.message, message.roomId);
+    });
+  } catch (error) {
+    console.error("Error saving message:", error);
+  }
+};
+
 exports.getRoomMessages = async (req, res) => {
   console.log("Get Room Messages", req.body);
   try {
     const roomId = req.body.roomId;
-    const query = `select messageId ,roomId, time, sender, seen, message, type   from messages where roomId = ? ORDER BY createdAt ASC`;
+    const query = `select messageId ,roomId, time, sender, seen, message, type,fileType,name,data from messages where roomId = ? ORDER BY createdAt ASC`;
 
     conn.query(query, [roomId], (err, result) => {
       if (err) {
@@ -336,27 +353,23 @@ exports.getRoomMessages = async (req, res) => {
   }
 };
 
-exports.updateSeen = (req, res) => {
-  console.log("Update Seen", req.body);
+exports.updateSeen = (msgId) => {
+  console.log("Update Seen", msgId);
   const query = `UPDATE messages SET seen = true WHERE messageId = ?`;
   try {
-    conn.query(query, [req.body.messageId], (err, result) => {
+    conn.query(query, [msgId], (err, result) => {
       if (err) {
         console.log("Erro in Seen status Update", err);
-        return res.status(500);
       }
 
       if (result.affectedRows === 0) {
         console.log("Nothing to update");
-        return res.status(404);
       }
 
       console.log("Seen updated successfully");
-      return res.status(200);
     });
   } catch (error) {
     console.log("Error occurred updating Last message: ", error);
-    return res.status(500);
   }
 };
 
@@ -401,3 +414,24 @@ exports.getRoomsByUsername = async (req, res) => {
     res.status(500).send("Some Error Occured getRoomsByUsername");
   }
 };
+
+
+
+exports.getAllMessages = (req,res) => {
+
+  try {
+    const query = `select messageId ,roomId, time, sender, seen, message, type,fileType,name,data from messages ORDER BY createdAt ASC`;
+
+    conn.query(query,  (err, result) => {
+      if (err) {
+        console.log("Error in getAllMessages", err);
+        return res.status(500).send("Error in getting all Messages");
+      }
+      res.status(200).send({ data: result });
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to retrieve all Messages" });
+  }
+
+
+}

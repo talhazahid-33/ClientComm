@@ -29,7 +29,7 @@ const LogIn = () => {
         })
         .then((res) => {
           if (res.status === 200) {
-            console.log(res.data);
+            localStorage.setItem("userId",res.data.data[0].userId);
             localStorage.setItem("email", formData.email);
             localStorage.setItem("username", res.data.data[0].username);
             navigate("/chat");

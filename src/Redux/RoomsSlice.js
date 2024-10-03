@@ -1,22 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  rooms: [
-    {
-      roomId: "",
-      lastMessage: "",
-      messages: [
-        {
-          messageId: "",
-          roomId: "",
-          sender: "",
-          seen: false,
-          time: "",
-          message: "",
-        },
-      ],
-    },
-  ],
+ 
 };
 
 const roomSlice = createSlice({

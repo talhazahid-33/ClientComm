@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("./controller");
-const fileController = require("./fileController");
-const fileHandler = require('./fileHandler');
+const controller = require("./Controllers/controller");
+const fileController = require("./Controllers/fileController");
+const fileHandler = require('./Controllers/fileHandler');
+const messageController = require('./Controllers/MessageController');
 router.use(express.json());
 
 //Users
@@ -13,6 +14,7 @@ router.post("/signup", controller.signup);
 //Chat Room
 
 router.post("/createroom",controller.createRoom);
+router.post("/checkroom",controller.checkRoomExists);
 router.get("/getrooms",controller.getRooms);
 
 router.post("/getmessages", controller.getRoomMessages);
@@ -25,9 +27,11 @@ router.get("/getallmessages",controller.getAllMessages);
 
 router.get("/getallusers",controller.getAllUsernames);
 
-router.post("/uploadimage",fileController.uploadDocument);
+router.post("/uploadfile",fileController.uploadDocument);
 
-router.post("/uploadimages",fileHandler.uploadFile);
+router.post("/uploadfiles",fileHandler.uploadFile);
+
+
 
 
 module.exports = router;

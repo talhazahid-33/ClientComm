@@ -1,95 +1,59 @@
-import React, { useState, useEffect } from "react";
-import io from "socket.io-client";
+import React, { useState } from "react";
+import axios from "axios";
 
-// Assuming the server is running on localhost:5000
-//const socket = io("http://localhost:5000");
-import socket from "./sockets";
-import context from "react-bootstrap/esm/AccordionContext";
-const Chat = () => {
-  const [message, setMessage] = useState(""); 
-  const [file, setFile] = useState(null); 
-  const [receivedItems, setReceivedItems] = useState([]); 
+const FileUploader = () => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [base64String, setBase64String] = useState("");
 
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = () => {
-        setFile({
-          name: selectedFile.name,
-          type: selectedFile.type,
-          data: reader.result,
-        }); 
-      };
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      convertFileToBase64(file);
     }
   };
 
-  const handleSendMessage = () => {
-    if (message) {
-        setReceivedItems((prev) => [...prev, {type:"text",content:message}]);
-
-      socket.emit("send_image", { type: "text", content: message });
-      setMessage(""); 
-    } else if (file) {
-        console.log("file",file);
-      socket.emit("send_file", { type: "file", file });
-      setFile(null); 
-    }
-  };
-
-  useEffect(() => {
-    socket.on("receive_item", (data) => {
-        
-        console.log("file",data);
-        console.log("all ",receivedItems);
-      setReceivedItems((prevItems) => [...prevItems, data]); 
-    });
-
-    return () => {
-      socket.off("receive_item"); 
+  const convertFileToBase64 = (file) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      setBase64String(reader.result);
+      setSelectedFile(file);  // Optional: if you need file reference
     };
-  }, []);
+    reader.onerror = (error) => {
+      console.error("Error converting file to base64: ", error);
+    };
+  };
 
-  const handleFileDownload = (file) => {
-    const link = document.createElement("a");
-    link.href = file.data;
-    link.download = file.name;
-    link.click();
+  const handleUpload = async () => {
+    if (!base64String) {
+      console.log("No file selected");
+      return;
+    }
+
+    try {
+      const response = await axios.post("http://localhost:8000/uploadfiles", {
+        file: base64String,
+      });
+
+      console.log("Server Response: ", response.data);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
   };
 
   return (
     <div>
-      <h1>Chat with Files</h1>
-
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type a message"
-      />
-      
-      <input type="file" onChange={handleFileSelect} />
-
-      <button onClick={handleSendMessage}>Send</button>
-
-      <h2>Received Messages and Files</h2>
-      <div>
-        {receivedItems.map((item, index) => (
-          <div key={index}>
-            {item.type === "text" ? (
-              <p>{item.content}</p>
-            ) : (
-              <div>
-                <p>{item.file.name}</p>
-                <button onClick={() => handleFileDownload(item.file)}>Download</button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <h3>Upload a Picture, Document, or Video</h3>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      {base64String && (
+        <div>
+          <p>Base64 Preview:</p>
+          <textarea value={base64String} readOnly rows="5" style={{ width: "100%" }} />
+        </div>
+      )}
     </div>
   );
 };
 
-export default Chat;
+export default FileUploader;

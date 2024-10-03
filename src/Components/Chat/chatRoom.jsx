@@ -14,12 +14,18 @@ const ChatRoom = (props) => {
   const [fileType, setFileType] = useState(null);
   const [roomItems, setRoomItems] = useState([]);
   const [roomID, setRoomID] = useState(0);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState();
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   const email = localStorage.getItem("email");
   const username = localStorage.getItem("username");
   const chatContainerRef = useRef(null);
   const messageRef = useRef(null);
+
+  const messages = useSelector((state) =>
+    selectMessagesByRoomId(state, props.roomid)
+  );
+  const msgs = useSelector((state) => state.messages);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -33,24 +39,29 @@ const ChatRoom = (props) => {
 
   useEffect(() => {
     getRoomItems();
-    //console.log("Ret Msgs : ",messages);
+    //console.log("Ret Msgs : ", messages);
+    //console.log("Msgs : ", msgs);
     //setRoomItems(messages);
-    console.log("Room ID : ", props.roomid);
     setRoomID(props.roomid);
   }, [props.roomid]);
 
   useEffect(() => {
     const handleReceiveMessage = (data) => {
       console.log("Msg Received");
-      //console.log("receiving socket Message ", data.roomId,props.roomid,roomID);
-      //console.log(roomID== data.roomId);
-
       if (data.roomId === props.roomid) {
+        if (data.message)
+          props.UpdateRoomLastMessage(data.roomId, data.message, true);
+        else props.UpdateRoomLastMessage(data.roomId, data.name, true);
+
         console.log("Calling Update Seen");
         socket.emit("update_seen_admin", data);
         setRoomItems((prevItems) => [...prevItems, data]);
       } else {
         console.log("Message belongs to room ", data.roomId);
+        if (data.message)
+          props.UpdateRoomLastMessage(data.roomId, data.message, false);
+        else props.UpdateRoomLastMessage(data.roomId, data.name, false);
+
         props.updateNewMessageCount(data.roomId);
       }
     };
@@ -68,14 +79,35 @@ const ChatRoom = (props) => {
 
     const handleSeenUpdateForAll = (data) => {
       console.log("Handle seen update for All", data);
+      if (data.roomId === props.roomid) {
+        setRoomItems((prevRoomItems) =>
+          prevRoomItems.map((message) =>
+            message.sender !== data.username
+              ? { ...message, seen: true }
+              : message
+          )
+        );
+      }
+    };
+    const handleDeleteMessage = (messageId) => {
+      console.log("Handle Delete message", messageId);
+      // setRoomItems((prevRoomItems) => {
+      //   return prevRoomItems.filter((item) => item.messageId !== messageId);
+      // });
+      setRoomItems((prevRoomItems) =>
+        prevRoomItems.map((message) =>
+          message.messageId !==messageId
+            ? { ...message, message: "This message was deleted" , type:'text' }
+            : message
+        )
+      );
     };
 
     socket.on("receive_message", handleReceiveMessage);
     socket.on("listen_seen_update", handleSeenUpdate);
     socket.on("listen_update_seen_for_all", handleSeenUpdateForAll);
+    socket.on("listen_delete_message", handleDeleteMessage);
     socket.on("receive_item", (data) => {
-      console.log("file", data);
-      console.log("all ", roomItems);
       setRoomItems((prevItems) => [...prevItems, data]);
     });
     return () => {
@@ -92,9 +124,8 @@ const ChatRoom = (props) => {
         roomId: props.roomid,
       });
       if (result.status === 200) {
-        console.log(result.data);
         setRoomItems(result.data.data);
-        socket.emit("update_seen_for_all", {
+        socket.emit("update_seen_for_all_admin", {
           username: username,
           roomId: props.roomid,
         });
@@ -122,8 +153,6 @@ const ChatRoom = (props) => {
     try {
       if (selectedFile) {
         const path = await uploadFile();
-
-        console.log("Path : ", path);
         const newMessage = {
           messageId: uuid(),
           sender: username,
@@ -137,10 +166,10 @@ const ChatRoom = (props) => {
           type: fileType,
         };
         setRoomItems((prevItems) => [...prevItems, newMessage]);
-        console.log("file : ", selectedFile);
         socket.emit("send_message_admin", newMessage);
         props.UpdateRoomLastMessage(props.roomid, selectedFile.name);
         setSelectedFile(null);
+        setSelectedFileName("");
         return;
       }
       if (message === "") return;
@@ -158,7 +187,7 @@ const ChatRoom = (props) => {
       };
       socket.emit("send_message_admin", newMessage);
       setRoomItems((prevItems) => [...prevItems, newMessage]);
-      props.UpdateRoomLastMessage(props.roomid, newMessage.message);
+      props.UpdateRoomLastMessage(props.roomid, newMessage.message, true);
       setMessage("");
     } catch (error) {
       console.log("Error sending Message");
@@ -167,6 +196,7 @@ const ChatRoom = (props) => {
 
   const handleSelectedFile = (type, file) => {
     setSelectedFile(file);
+    setSelectedFileName(file.name);
     setFileType(type);
   };
   const uploadFile = async () => {
@@ -178,7 +208,7 @@ const ChatRoom = (props) => {
     formData.append("file", selectedFile);
     try {
       const response = await axios.post(
-        "http://localhost:8000/uploadimage",
+        "http://localhost:8000/uploadfile",
         formData,
         {
           headers: {
@@ -192,7 +222,17 @@ const ChatRoom = (props) => {
       console.log("Error uploading file: " + error.message);
     }
   };
-
+  function truncateString(str) {
+    return str.length > 20 ? str.substring(0, 20) + "..." : str;
+  }
+  const deleteMessage = (index) => {
+    console.log("Lets delete ", index);
+    const message = roomItems[index];
+    setRoomItems((prevItems) => {
+      return prevItems.filter((_, i) => i !== index);
+    });
+    socket.emit("delete_message_admin", message);
+  };
   return (
     <div style={{ flex: 1, width: "70vw" }}>
       <div className="chat-parent-container" ref={chatContainerRef}>
@@ -200,13 +240,23 @@ const ChatRoom = (props) => {
           if (msg.type === "text") {
             return (
               <ChatMessage
-                key={index}
+                index={index}
                 username={msg.sender}
                 time={msg.time}
                 message={msg.message}
                 seen={msg.seen}
                 alignReverse={username === msg.sender}
+                deleteMessage={deleteMessage}
               />
+            );
+          } else if (msg.type === "video") {
+            return (
+              <>
+                <VideoTile
+                  message={msg}
+                  alignReverse={username === msg.sender}
+                />
+              </>
             );
           } else
             return (
@@ -238,6 +288,11 @@ const ChatRoom = (props) => {
             }}
           ></input>
           <FileInput handleSelectedFile={handleSelectedFile} />
+          {selectedFileName && (
+            <p style={{ marginTop: "15px", fontSize: "10px" }}>
+              {truncateString(selectedFileName)}
+            </p>
+          )}
         </div>
         <br />
         <button className="btn btn-primary" onClick={sendMessage}>

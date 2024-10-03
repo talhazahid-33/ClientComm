@@ -3,7 +3,7 @@ import { useState } from "react";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import ChatTile from "./ChatList/Tile";
+import ChatTile from "./ChatList/TabTile";
 import axios from "axios";
 import TabPanelC from "./ChatList/TabPanel";
 import RoomCreation from "./ChatList/usersDialog";
@@ -12,6 +12,7 @@ import socket from "../Pages/sockets";
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { populateRooms, printRooms } from "../Redux/RoomsSlice";
+import ChatRoom from "./Chat/chatRoom";
 
 export default function ChatTab() {
   const [value, setValue] = React.useState(0);
@@ -26,10 +27,12 @@ export default function ChatTab() {
   //const selector = useSelector();
 
   const handleChange = (event, newValue) => {
+    console.log("New Value : ", newValue);
     setValue(newValue);
     setRoomID(() => rooms[newValue].roomId);
     setRoomUsername(rooms[newValue].username);
     //useSelector((state) => state.userProfile.username);
+    //setting newMessageCount
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
         room.roomId == rooms[newValue].roomId
@@ -40,15 +43,15 @@ export default function ChatTab() {
   };
 
   const updateNewMessageCount = (roomId) => {
-    console.log("Update Count : ",roomId);
+    console.log("Update Count : ", roomId);
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
         room.roomId == roomId
-          ? { ...room, newMessages: room.newMessages+1 }
+          ? { ...room, newMessages: room.newMessages + 1 }
           : room
       )
     );
-    console.log(rooms);
+    // console.log(rooms);
   };
 
   const createRoom = async (username2) => {
@@ -80,6 +83,7 @@ export default function ChatTab() {
     try {
       const result = await axios.get("http://localhost:8000/getrooms");
       if (result.status === 200) {
+        console.log("Rooms : ", result.data.data);
         setRooms(result.data.data);
       } else {
         console.log("Error getting rooms");
@@ -106,21 +110,44 @@ export default function ChatTab() {
     return usernames.filter((user) => user !== username);
   }
 
-  const UpdateRoomLastMessage = (roomId, msg) => {
+  const getCurrentSqlTimestamp = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+  
+
+  const UpdateRoomLastMessage = (roomId, msg, open) => {
+    let updatedRoomIndex = -1;
     setRooms((prevRooms) =>
-      prevRooms.map((room) =>
-        room.roomId === roomId ? { ...room, lastMessage: msg } : room
-      )
+      prevRooms.map((room, index) => {
+        if (room.roomId === roomId) {
+          updatedRoomIndex = index;
+          return { ...room, lastMessage: msg, updatedAt: new Date() };
+        } else return room;
+      })
     );
+    if (open) {
+      setValue(0);
+    } else if (updatedRoomIndex > value) {
+      setValue(value + 1);
+    }
+    else{
+      console.log("No change : ");
+    }
   };
   React.useEffect(() => {
     getUsernames();
     getRooms();
   }, []);
 
-  useEffect(() => {
-   
-  }, [rooms]);
+  useEffect(() => {}, [rooms]);
   useEffect(() => {
     const handleInvitation = (data) => {
       console.log("Invitation Received", data);
@@ -152,6 +179,7 @@ export default function ChatTab() {
 
   return (
     <div>
+      <p>{value}</p>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ flex: 1, width: "30vw" }}>
           <RoomCreation
@@ -183,28 +211,37 @@ export default function ChatTab() {
           aria-label="Vertical tabs example"
           sx={{ borderRight: 1, borderColor: "divider" }}
         >
-          {rooms.map((room, index) => (
-            <Tab
-              key={index}
-              sx={{ maxWidth: "100%" }}
-              label={
-                <ChatTile
-                  username={room.username}
-                  lastMessage={room.lastMessage}
-                  time={room.roomId}
-                  newMessages={room.newMessages}
-                />
-              }
-            />
-          ))}
+          {rooms
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+            .map((room, index) => (
+              <Tab
+                key={index}
+                sx={{ maxWidth: "100%" }}
+                label={
+                  <ChatTile
+                    index={index}
+                    username={room.username}
+                    lastMessage={room.lastMessage}
+                    time={room.roomId}
+                    newMessages={room.newMessages}
+                  />
+                }
+              />
+            ))}
         </Tabs>
-
+        {/*
         <TabPanelC
           value={value}
           roomid={roomID}
           UpdateRoomLastMessage={UpdateRoomLastMessage}
           updateNewMessageCount={updateNewMessageCount}
-        ></TabPanelC>
+          moveRoomToStart={moveRoomToStart}
+        ></TabPanelC>*/}
+        <ChatRoom
+          roomid={roomID}
+          UpdateRoomLastMessage={UpdateRoomLastMessage}
+          updateNewMessageCount={updateNewMessageCount}
+        />
       </Box>
     </div>
   );

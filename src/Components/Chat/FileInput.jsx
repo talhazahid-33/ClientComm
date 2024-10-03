@@ -6,8 +6,7 @@ const FileInput = (props) => {
   const [showOptions, setShowOptions] = useState(false);
   const fileInputRef = useRef(null); 
   const documentInputRef = useRef(null); 
-  const [image,setImage] = useState(null);
-  const [document,setDocument] = useState(null);
+  const videoInputRef = useRef(null);
 
   const handleAttachmentClick = () => {
     setShowOptions((prev) => !prev);
@@ -19,6 +18,9 @@ const FileInput = (props) => {
       fileInputRef.current.click(); 
     } else if (type === 'Document') {
       documentInputRef.current.click(); 
+    }
+    else if(type === 'Video'){
+      videoInputRef.current.click();
     }
   };
 
@@ -32,6 +34,10 @@ const FileInput = (props) => {
       } else if (type === 'Document') {
         console.log("Selected document(s):", file);
         props.handleSelectedFile("document",file);
+      }
+      else if(type === 'Video'){
+        console.log("Selected Video ",file);
+        props.handleSelectedFile("video",file);
       }
 
     }
@@ -47,9 +53,13 @@ const FileInput = (props) => {
           <div style={styles.option} onClick={() => handleOptionSelect('Image')}>
             📷 Image
           </div>
+          <div style={styles.option} onClick={() => handleOptionSelect('Video')}>
+            🎥 Video
+          </div>
           <div style={styles.option} onClick={() => handleOptionSelect('Document')}>
             📄 Document
           </div>
+          
         </div>
       )}
       <input
@@ -66,6 +76,14 @@ const FileInput = (props) => {
         onChange={(e) => handleFileChange(e, 'Document')}
         style={styles.fileInput}
         accept=".pdf,.doc,.docx,.txt"
+        hidden
+      />
+      <input
+        type="file"
+        ref={videoInputRef}
+        onChange={(e) => handleFileChange(e, 'Video')}
+        style={styles.fileInput}
+        accept="video/*"
         hidden
       />
     </div>
@@ -89,8 +107,8 @@ const styles = {
   },
   options: {
     position: 'absolute',
-    top: '-80px', // Adjust this to control how far above the icon the options appear
-    right: '0px',  // Align the right edge of the options to the icon
+    top: '-80px',
+    right: '0px', 
     backgroundColor: '#fff',
     border: '1px solid #ddd',
     borderRadius: '5px',

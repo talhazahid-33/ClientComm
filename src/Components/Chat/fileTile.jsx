@@ -1,19 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
+import ImageDialog from "./ImageDialog";
 
 import "./chat.css";
+
 const FileTile = (props) => {
+  const [imageDialogVis, setImageDialog] = useState(false);
+
+  const handleImageDialog = () => {
+    setImageDialog(!imageDialogVis);
+  };
+
   const handleDownload = () => {
     console.log("Download: ", props.path);
-    const link = document.createElement('a');
-    
-    link.href = "http://localhost:8000/" + props.path; 
-    link.download = props.path.split('/').pop(); 
-    link.target = '_blank'; 
+    const link = document.createElement("a");
+
+    link.href = "http://localhost:8000/" + props.path;
+    link.download = props.path.split("/").pop();
+    link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
-  
+
   return (
     <div>
       <div
@@ -41,16 +49,26 @@ const FileTile = (props) => {
                 <>
                   {props.type === "image" ? (
                     <>
-                  <p>{props.name}</p>
+                      <p>{props.name}</p>
                       <img
                         src={`http://localhost:8000/${props.path}`}
                         alt="Uploaded"
                         style={{ width: "140px", height: "120px" }}
+                        onClick={handleImageDialog}
+                      />
+                      <ImageDialog
+                        open={imageDialogVis}
+                        name = {props.name}
+                        handleImageDialog={handleImageDialog}
+                        path={`http://localhost:8000/${props.path}`}
                       />
                     </>
                   ) : (
                     <>
-                     <b> <p onClick={handleDownload}>{props.name}</p></b>
+                      <b>
+                        {" "}
+                        <p onClick={handleDownload}>{props.name}</p>
+                      </b>
                     </>
                   )}
                 </>

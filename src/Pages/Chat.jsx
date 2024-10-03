@@ -10,10 +10,10 @@ const Chat = () => {
   const dispatch = useDispatch();
   useEffect(() => {
     socket.emit("selfroom", "admin");
+    getallmessages();
   }, []);
 
   useEffect(() => {
-    getallmessages();
   }, []);
 
   async function getallmessages() {

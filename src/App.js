@@ -5,7 +5,7 @@ import Chat from "./Pages/Chat";
 import Signup from "./Pages/SignUp";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ImageChat from "./Pages/ImageChat";
-import FileChat from "./Pages/FileChat";
+import FileUploader from "./Pages/FileChat";
 
 function App() {
   return (
@@ -16,7 +16,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/image" element={<ImageChat />} />
-          <Route path="/file" element={<FileChat />} />
+          <Route path="/file" element={<FileUploader />} />
         </Routes>
       </Router>
     </div>

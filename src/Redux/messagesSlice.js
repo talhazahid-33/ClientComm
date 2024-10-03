@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-const initialState = [{roomId: null, messages: []}];
+import { createSelector } from "@reduxjs/toolkit";
+const initialState = [];
 
 const messageSlice = createSlice({
   name: "messageSlice",
@@ -42,6 +42,12 @@ const messageSlice = createSlice({
     },
   },
 });
+
+export const selectMessagesByRoomId = (state, roomId) => {
+  console.log("Retrieving : ",roomId);
+  const room = state.messages.find((room) => room.roomId === roomId);
+  return room ? room.messages : [];
+};
 
 export const { addMessages, addMessage } = messageSlice.actions;
 export default messageSlice.reducer;

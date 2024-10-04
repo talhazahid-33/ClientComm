@@ -115,22 +115,24 @@ io.on("connection", (socket) => {
   });
 
   socket.on("delete_message",(messageId)=>{
+    console.log("Delete Client",messageId);
+    messageController.deleteMessage(messageId,"admin");
+  })
+  socket.on("delete_message_admin",(messageId)=>{
     console.log("Delete ",messageId);
-    //messageController.deleteMessage(messageId);
+    messageController.deleteMessage(messageId,"user");
+  })
+  socket.on("delete_for_everyone",(messageId)=>{
+    console.log("Delete for Everyone",messageId);
     messageController.deleteForEveryOne(messageId);
     socket.to("admin").emit("listen_delete_message",messageId);
   })
-  socket.on("delete_message_admin",(message)=>{
-    console.log("Delete ",message);
-    messageController.deleteMessage(message.messageId);
+
+  socket.on("delete_for_everyone_admin",(message)=>{
+    console.log("Delete for everyone admin",message);
+    messageController.deleteForEveryOne(message.messageId);
     socket.to(message.roomId).emit("listen_delete_message",message.messageId);
   })
-
-  socket.on("delete_message",(data)=>{
-    console.log("Delete ");
-
-  })
-
 
 
 

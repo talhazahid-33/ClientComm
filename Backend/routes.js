@@ -17,10 +17,10 @@ router.post("/createroom",controller.createRoom);
 router.post("/checkroom",controller.checkRoomExists);
 router.get("/getrooms",controller.getRooms);
 
-router.post("/getmessages", controller.getRoomMessages);
+router.post("/getmessages", messageController.getRoomMessages);
 router.post("/getfiles",controller.getFiles);
 router.get("/getroomusers",controller.getUsernameOfRoom);
-router.post("/savemessage", controller.saveMessage);
+router.post("/savemessage", messageController.saveMessage);
 router.post("/updateseen",controller.updateSeen);
 
 router.get("/getallmessages",controller.getAllMessages);

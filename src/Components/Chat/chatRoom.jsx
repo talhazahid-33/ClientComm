@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { selectMessagesByRoomId } from "../../Redux/messagesSlice";
 import VideoTile from "./videoTile";
 
+import DeleteIcon from "@mui/icons-material/Delete";
 const ChatRoom = (props) => {
   const [message, setMessage] = useState("");
   const [fileType, setFileType] = useState(null);
@@ -94,10 +95,11 @@ const ChatRoom = (props) => {
       // setRoomItems((prevRoomItems) => {
       //   return prevRoomItems.filter((item) => item.messageId !== messageId);
       // });
+     
       setRoomItems((prevRoomItems) =>
         prevRoomItems.map((message) =>
-          message.messageId !==messageId
-            ? { ...message, message: "This message was deleted" , type:'text' }
+          message.messageId === messageId
+            ? { ...message, message: "This message was deleted", type: "text" }
             : message
         )
       );
@@ -122,6 +124,7 @@ const ChatRoom = (props) => {
     try {
       const result = await axios.post("http://localhost:8000/getmessages", {
         roomId: props.roomid,
+        role:"admin",
       });
       if (result.status === 200) {
         setRoomItems(result.data.data);
@@ -225,13 +228,22 @@ const ChatRoom = (props) => {
   function truncateString(str) {
     return str.length > 20 ? str.substring(0, 20) + "..." : str;
   }
-  const deleteMessage = (index) => {
-    console.log("Lets delete ", index);
+  const deleteMessage = (selectedOption, index) => {
+    console.log("Lets delete ", index, selectedOption);
     const message = roomItems[index];
-    setRoomItems((prevItems) => {
-      return prevItems.filter((_, i) => i !== index);
-    });
-    socket.emit("delete_message_admin", message);
+    if (selectedOption === "deleteForMe") {
+      setRoomItems((prevItems) => {
+        return prevItems.filter((_, i) => i !== index);
+      });
+      socket.emit("delete_message_admin", message.messageId);
+    } else if (selectedOption === "deleteForEveryone") {
+      setRoomItems((prevRoomItems) =>
+        prevRoomItems.map((item, i) =>
+          i === index ? { ...item, message: 'This message was deleted' } : item
+        )
+      );
+      socket.emit("delete_for_everyone_admin",message)
+    } 
   };
   return (
     <div style={{ flex: 1, width: "70vw" }}>
@@ -260,16 +272,18 @@ const ChatRoom = (props) => {
             );
           } else
             return (
-              <FileTile
-                key={index}
-                path={msg.data}
-                type={msg.type}
-                username={msg.sender}
-                name={msg.name}
-                time={msg.time}
-                seen={msg.seen}
-                alignReverse={username === msg.sender}
-              />
+              <>
+                <FileTile
+                  key={index}
+                  path={msg.data}
+                  type={msg.type}
+                  username={msg.sender}
+                  name={msg.name}
+                  time={msg.time}
+                  seen={msg.seen}
+                  alignReverse={username === msg.sender}
+                />
+              </>
             );
         })}
         <br />

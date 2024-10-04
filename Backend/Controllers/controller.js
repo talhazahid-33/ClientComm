@@ -206,31 +206,6 @@ exports.getAllUsernames = async (req, res) => {
     console.error("Error getting users ", error);
   }
 };
-exports.saveMessage = async (req, res) => {
-  console.log("Save Message", req.body);
-  const message = req.body;
-  try {
-    const query = `insert into messages (messageId,roomid,time,sender,seen,message) values (?,?,?,?,?,?)`;
-    const values = [
-      message.messageId,
-      message.roomId,
-      message.time,
-      message.sender,
-      message.seen,
-      message.message,
-    ];
-    conn.query(query, values, (err, result) => {
-      if (err) {
-        console.log("Error Query saving messages", err);
-        return res.status(500).send("Error saving message");
-      }
-      updateRoomLastMessage(message.message, message.roomId);
-      return res.status(200).send("Message Saved");
-    });
-  } catch (error) {
-    console.error("Error saving message:", error);
-  }
-};
 
 exports.saveFiles = async (message) => {
   try {
@@ -349,24 +324,6 @@ exports.saveFileFromSocket = async (message) => {
     });
   } catch (error) {
     console.error("Error saving message:", error);
-  }
-};
-
-exports.getRoomMessages = async (req, res) => {
-  console.log("Get Room Messages", req.body);
-  try {
-    const roomId = req.body.roomId;
-    const query = `select messageId ,roomId, time, sender, seen, message, type,fileType,name,data from messages where roomId = ? ORDER BY createdAt ASC`;
-
-    conn.query(query, [roomId], (err, result) => {
-      if (err) {
-        console.log("Error in getRoomMessages", err);
-        return res.status(500).send("Error in getting Messages from room");
-      }
-      res.status(200).send({ data: result });
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to retrieve messages from room" });
   }
 };
 

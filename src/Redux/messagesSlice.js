@@ -33,6 +33,7 @@ const messageSlice = createSlice({
     },
     addMessage: (state, action) => {
       const message = action.payload;
+      console.log("Message Slice : ",message);
       const room = state.find((room) => room.roomId === message.roomId);
       if (room) {
         room.messages.push(message);
@@ -44,7 +45,6 @@ const messageSlice = createSlice({
 });
 
 export const selectMessagesByRoomId = (state, roomId) => {
-  console.log("Retrieving : ",roomId);
   const room = state.messages.find((room) => room.roomId === roomId);
   return room ? room.messages : [];
 };

@@ -29,10 +29,9 @@ const Chat = () => {
 
   return (
     <div className="chat-page">
-      <div></div>
-      <div>
+      {/* <div> */}
         <ChatTab />
-      </div>
+      {/* </div> */}
     </div>
   );
 };

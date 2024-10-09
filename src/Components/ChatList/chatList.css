@@ -34,7 +34,8 @@
   }
   
   .tab-width{
-    min-width: 30vw;
+    display: flex;
+    flex: 0.3;
   }
   .tab-pannel{
     display: flex;
@@ -47,10 +48,9 @@
 
 
   .user-list-container {
-    width: 70vw;
     display: flex;
+    flex: 0.7;
     align-items: center;
-    justify-content: space-between;
     padding: 0 20px;
     background-color: #f0f0f0;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);

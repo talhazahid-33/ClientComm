@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import ImageDialog from "./ImageDialog";
 
+import DoneAllSharpIcon from '@mui/icons-material/DoneAllSharp';
+import DoneSharpIcon from '@mui/icons-material/DoneSharp';
 import "./chat.css";
+import DeleteDialog from "./DeleteDialog";
 
 const FileTile = (props) => {
   const [imageDialogVis, setImageDialog] = useState(false);
@@ -22,18 +25,29 @@ const FileTile = (props) => {
     document.body.removeChild(link);
   };
 
+    const [hover, setHover] = useState(false);
   return (
-    <div>
-      <div
-        key={props.index}
-        className={`image-chat-container ${
-          props.alignReverse ? "row-reverse" : ""
-        }`}
-      >
+    <div
+    key={props.index}
+    onMouseEnter={() => setHover(true)}
+    onMouseLeave={() => setHover(false)}
+  >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        marginRight: "",
+        flexDirection: props.alignReverse ? "row-reverse" : "row",
+      }}
+    >
+      <div className={`chat-container ${false ? "row-reverse" : ""}`}>
+     
         <div className="upper-division">
           <span className="email">{props.username}</span>
-          <span className="time">{props.time}</span>
-        </div>
+          <span className="time">
+          {props.time}
+        </span>
+          </div>
 
         <div className="lower-division">
           <div
@@ -58,7 +72,7 @@ const FileTile = (props) => {
                       />
                       <ImageDialog
                         open={imageDialogVis}
-                        name = {props.name}
+                        name={props.name}
                         handleImageDialog={handleImageDialog}
                         path={`http://localhost:8000/${props.path}`}
                       />
@@ -77,13 +91,22 @@ const FileTile = (props) => {
               )}
             </div>
             {!props.alignReverse ? null : props.seen ? (
-              <span>✔️</span>
+              
+              <DoneAllSharpIcon fontSize="small" color="primary"/>
             ) : (
-              <span>✓</span>
+              <DoneSharpIcon fontSize="small" />
             )}
           </div>
         </div>
       </div>
+      {hover && (
+          <DeleteDialog
+            index={props.index}
+            deleteMessage={props.deleteMessage}
+            delForEveryone={props.alignReverse}
+          />
+        )}
+    </div>
     </div>
   );
 };

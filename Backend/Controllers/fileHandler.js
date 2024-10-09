@@ -32,12 +32,15 @@ const base64ToMulterMiddleware = (req, res, next) => {
     }
 
     const matches = base64File.match(
-      /^data:(application\/\w+|image\/\w+|text\/\w+|video\/\w+);base64,(.+)$/
+      /^data:(application\/\w+|image\/\w+|text\/\w+|video\/\w+|audio\/\w+);base64,(.+)$/
     );
-
+    
+    
     if (!matches || matches.length !== 3) {
+    console.log(1);
       return res.status(400).json({ error: "Invalid base64 file data." });
     }
+    console.log(2);
     const mimeType = matches[1];
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, "base64");
@@ -63,7 +66,7 @@ const base64ToMulterMiddleware = (req, res, next) => {
 };
 
 exports.uploadFile = (req, res) => {
-  console.log("Upload Files");
+  console.log("Upload Files ",req.body);
   base64ToMulterMiddleware(req, res, () => {
     upload(req, res, function (err) {
       if (err) {

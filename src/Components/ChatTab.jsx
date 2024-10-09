@@ -31,8 +31,6 @@ export default function ChatTab() {
     setValue(newValue);
     setRoomID(() => rooms[newValue].roomId);
     setRoomUsername(rooms[newValue].username);
-    //useSelector((state) => state.userProfile.username);
-    //setting newMessageCount
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
         room.roomId == rooms[newValue].roomId
@@ -51,7 +49,6 @@ export default function ChatTab() {
           : room
       )
     );
-    // console.log(rooms);
   };
 
   const createRoom = async (username2) => {
@@ -121,7 +118,6 @@ export default function ChatTab() {
 
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
-  
 
   const UpdateRoomLastMessage = (roomId, msg, open) => {
     let updatedRoomIndex = -1;
@@ -137,8 +133,7 @@ export default function ChatTab() {
       setValue(0);
     } else if (updatedRoomIndex > value) {
       setValue(value + 1);
-    }
-    else{
+    } else {
       console.log("No change : ");
     }
   };
@@ -178,10 +173,9 @@ export default function ChatTab() {
   }, [rooms]);
 
   return (
-    <div>
-      <p>{value}</p>
+    <div style={{width:'100%' , padding:'5px', height:'100%' ,flexGrow:1}}>
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <div style={{ flex: 1, width: "30vw" }}>
+        <div style={{ flex: 0.3 }}>
           <RoomCreation
             className="create-room"
             usernames={usernames}
@@ -190,16 +184,16 @@ export default function ChatTab() {
         </div>
         <ChatUsersList
           room={rooms}
+
           username={!rooms ? "[Hamza , ALi]" : roomUsername}
         />
       </div>
 
       <Box
         sx={{
-          flexGrow: 1,
           bgcolor: "background.paper",
           display: "flex",
-          height: 600,
+          height:'95%'
         }}
       >
         <Tabs

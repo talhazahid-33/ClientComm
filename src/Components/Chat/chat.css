@@ -1,7 +1,8 @@
 .chat-container {
   border: 1px solid #ccc;
   padding: 10px;
-  margin: 10px 0;
+  padding-bottom: 0;
+  margin: 5px 0;
   border-radius: 5px;
   width: 300px;
   display: flex;
@@ -54,8 +55,9 @@
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
-  width: 90vw;
+  flex: 1;
   outline: none;
+  position: 'relative';
 }
 
 .enter-message:focus {
@@ -74,6 +76,7 @@
 .input-message-div {
   display: flex;
   flex-direction: row;
+  width: 100%;
 }
 
 .small-tag {
@@ -114,15 +117,17 @@
   flex-direction: column;
   padding: 20px;
   background-color: #f9f9f9;
-
   margin: 0 auto;
   border-radius: 10px;
   border: 1px solid #ddd;
   height: 150px;
+  width: 100%;
 }
 
 
-
+.ticks{
+  font-size: medium;
+}
 
 
 .file-container {}
@@ -145,4 +150,39 @@
 
 .file-select-modal button {
   margin-right: 10px;
+}
+
+
+
+/*Audio tite*/
+
+.audio-tile {
+  display: flex;
+  align-items: center;
+  background-color: #f1f0f0;
+  border-radius: 15px;
+  padding: 8px 12px;
+  margin: 10px 0;
+  width: 100%;
+  max-width: 400px;
+}
+
+.audio-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #25d366;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  color: white;
+  cursor: pointer;
+}
+
+.audio-info {
+  flex-grow: 1;
+  padding-left: 10px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
 }

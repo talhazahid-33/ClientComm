@@ -5,11 +5,12 @@ import socket from "../../Pages/sockets";
 import { v4 as uuid } from "uuid";
 import FileTile from "./fileTile";
 import FileInput from "./FileInput";
-import { useSelector } from "react-redux";
-import { selectMessagesByRoomId } from "../../Redux/messagesSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { addMessage, selectMessagesByRoomId } from "../../Redux/messagesSlice";
 import VideoTile from "./videoTile";
+import VoiceMessage from "./AudioMessage";
+import AudioTile from "./AudioTile";
 
-import DeleteIcon from "@mui/icons-material/Delete";
 const ChatRoom = (props) => {
   const [message, setMessage] = useState("");
   const [fileType, setFileType] = useState(null);
@@ -23,10 +24,10 @@ const ChatRoom = (props) => {
   const chatContainerRef = useRef(null);
   const messageRef = useRef(null);
 
-  const messages = useSelector((state) =>
-    selectMessagesByRoomId(state, props.roomid)
-  );
-  const msgs = useSelector((state) => state.messages);
+
+  const msgs = useSelector((state) => selectMessagesByRoomId(state, props.roomid));
+  const dispatch = useDispatch();
+   // const msgs = useSelector((state)=>state.messages);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -41,14 +42,19 @@ const ChatRoom = (props) => {
   useEffect(() => {
     getRoomItems();
     //console.log("Ret Msgs : ", messages);
-    //console.log("Msgs : ", msgs);
+    console.log("Msgs : ", msgs);
     //setRoomItems(messages);
     setRoomID(props.roomid);
+    //setRoomItems(msgs);
+
   }, [props.roomid]);
+
 
   useEffect(() => {
     const handleReceiveMessage = (data) => {
       console.log("Msg Received");
+      
+      dispatch(addMessage(data));
       if (data.roomId === props.roomid) {
         if (data.message)
           props.UpdateRoomLastMessage(data.roomId, data.message, true);
@@ -92,10 +98,6 @@ const ChatRoom = (props) => {
     };
     const handleDeleteMessage = (messageId) => {
       console.log("Handle Delete message", messageId);
-      // setRoomItems((prevRoomItems) => {
-      //   return prevRoomItems.filter((item) => item.messageId !== messageId);
-      // });
-     
       setRoomItems((prevRoomItems) =>
         prevRoomItems.map((message) =>
           message.messageId === messageId
@@ -124,7 +126,7 @@ const ChatRoom = (props) => {
     try {
       const result = await axios.post("http://localhost:8000/getmessages", {
         roomId: props.roomid,
-        role:"admin",
+        role: "admin",
       });
       if (result.status === 200) {
         setRoomItems(result.data.data);
@@ -151,11 +153,11 @@ const ChatRoom = (props) => {
     return now.toLocaleTimeString("en-US", options);
   };
 
-  const sendMessage = async () => {
+  const sendMessage = async (audioFile) => {
     const time = getCurrentTime();
     try {
       if (selectedFile) {
-        const path = await uploadFile();
+        const path = await uploadFile(selectedFile);
         const newMessage = {
           messageId: uuid(),
           sender: username,
@@ -169,10 +171,33 @@ const ChatRoom = (props) => {
           type: fileType,
         };
         setRoomItems((prevItems) => [...prevItems, newMessage]);
+        dispatch(addMessage(newMessage));
         socket.emit("send_message_admin", newMessage);
         props.UpdateRoomLastMessage(props.roomid, selectedFile.name);
         setSelectedFile(null);
         setSelectedFileName("");
+
+        return;
+      } else if (audioFile) {
+        console.log("elseif");
+        console.log("Send Voice Message : ", audioFile);
+        const path = await uploadFile(audioFile);
+        const newMessage = {
+          messageId: uuid(),
+          sender: username,
+          seen: false,
+          roomId: props.roomid,
+          fileType: audioFile.type,
+          message: null,
+          name: audioFile.name,
+          data: path.replace(/\\/g, "/"),
+          time: time,
+          type: "audio",
+        };
+        setRoomItems((prevItems) => [...prevItems, newMessage]);
+        dispatch(addMessage(newMessage));
+        socket.emit("send_message_admin", newMessage);
+        props.UpdateRoomLastMessage(props.roomid, newMessage.name);
         return;
       }
       if (message === "") return;
@@ -190,6 +215,7 @@ const ChatRoom = (props) => {
       };
       socket.emit("send_message_admin", newMessage);
       setRoomItems((prevItems) => [...prevItems, newMessage]);
+      dispatch(addMessage(newMessage));
       props.UpdateRoomLastMessage(props.roomid, newMessage.message, true);
       setMessage("");
     } catch (error) {
@@ -202,13 +228,13 @@ const ChatRoom = (props) => {
     setSelectedFileName(file.name);
     setFileType(type);
   };
-  const uploadFile = async () => {
-    if (!selectedFile) {
-      console.log("Empty File");
-      return;
-    }
+  const handleVoiceMessage = (file) => {
+    console.log("send voice ", file);
+    sendMessage(file);
+  };
+  const uploadFile = async (file) => {
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("file", file);
     try {
       const response = await axios.post(
         "http://localhost:8000/uploadfile",
@@ -239,14 +265,14 @@ const ChatRoom = (props) => {
     } else if (selectedOption === "deleteForEveryone") {
       setRoomItems((prevRoomItems) =>
         prevRoomItems.map((item, i) =>
-          i === index ? { ...item, message: 'This message was deleted' } : item
+          i === index ? { ...item, message: "This message was deleted" } : item
         )
       );
-      socket.emit("delete_for_everyone_admin",message)
-    } 
+      socket.emit("delete_for_everyone_admin", message);
+    }
   };
   return (
-    <div style={{ flex: 1, width: "70vw" }}>
+    <div style={{ flex: 0.7 }}>
       <div className="chat-parent-container" ref={chatContainerRef}>
         {roomItems.map((msg, index) => {
           if (msg.type === "text") {
@@ -265,16 +291,18 @@ const ChatRoom = (props) => {
             return (
               <>
                 <VideoTile
+                  index={index}
                   message={msg}
                   alignReverse={username === msg.sender}
+                  deleteMessage={deleteMessage}
                 />
               </>
             );
-          } else
+          } else if (msg.type === "image" || msg.type === 'document')
             return (
               <>
                 <FileTile
-                  key={index}
+                  index={index}
                   path={msg.data}
                   type={msg.type}
                   username={msg.sender}
@@ -282,25 +310,46 @@ const ChatRoom = (props) => {
                   time={msg.time}
                   seen={msg.seen}
                   alignReverse={username === msg.sender}
+                  deleteMessage={deleteMessage}
                 />
               </>
             );
+          else {
+            return (
+              <>
+                <AudioTile
+                  index={index}
+                  url={msg.data}
+                  type={msg.type}
+                  username={msg.sender}
+                  name={msg.name}
+                  time={msg.time}
+                  seen={msg.seen}
+                  alignReverse={username === msg.sender}
+                  deleteMessage={deleteMessage}
+                />
+              </>
+            );
+          }
         })}
         <br />
       </div>
       <div className="chat-send-message">
         <div className="input-message-div">
-          <input
-            className="enter-message"
-            type="text"
-            placeholder="Type Something "
-            value={message}
-            ref={messageRef}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyUp={(e) => {
-              if (e.key === "Enter") sendMessage();
-            }}
-          ></input>
+          <div style={{ display: "flex", flex: "1" }}>
+            <input
+              className="enter-message"
+              type="text"
+              placeholder="Type Something "
+              value={message}
+              ref={messageRef}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyUp={(e) => {
+                if (e.key === "Enter") sendMessage();
+              }}
+            ></input>
+            <VoiceMessage handleVoiceMessage={handleVoiceMessage} />
+          </div>
           <FileInput handleSelectedFile={handleSelectedFile} />
           {selectedFileName && (
             <p style={{ marginTop: "15px", fontSize: "10px" }}>
@@ -312,15 +361,6 @@ const ChatRoom = (props) => {
         <button className="btn btn-primary" onClick={sendMessage}>
           Send
         </button>
-        {
-          <button
-            onClick={() => {
-              console.log(props.roomid);
-            }}
-          >
-            Check Rooms{" "}
-          </button>
-        }
       </div>
     </div>
   );

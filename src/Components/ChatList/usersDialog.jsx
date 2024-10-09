@@ -68,9 +68,9 @@ export default function RoomCreation(props) {
   };
 
   return (
-    <div>
+    <div style={{width: '100%', display: 'flex'}}>
       
-      <Button  style={{ marginLeft:'4%', width: "27vw", height:"50px" }}variant="contained" onClick={handleClickOpen}>Add USer
+      <Button  style={{  display: 'flex', flexGrow: '1', height:"50px" }}variant="contained" onClick={handleClickOpen}>Add USer
       </Button>
       <SimpleDialog
         selectedValue={selectedValue}

@@ -1,16 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import ReactPlayer from "react-player";
 import "./chat.css";
+import DeleteDialog from "./DeleteDialog";
+
+import DoneAllSharpIcon from '@mui/icons-material/DoneAllSharp';
+import DoneSharpIcon from '@mui/icons-material/DoneSharp';
 const FileTile = (props) => {
     const message = props.message;
+    
+  const [hover, setHover] = useState(false);
   return (
-    <div>
+    <div
+      key={props.index}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
       <div
-        key={message.messageId}
-        className={`image-chat-container ${
-          props.alignReverse ? "row-reverse" : ""
-        }`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginRight: "",
+          flexDirection: props.alignReverse ? "row-reverse" : "row",
+        }}
       >
+        <div className={`chat-container ${false ? "row-reverse" : ""}`}>
+       
         <div className="upper-division">
           <span className="email">{message.sender}</span>
           <span className="time">{message.time}</span>
@@ -52,14 +66,23 @@ const FileTile = (props) => {
                 <p>No image available</p>
               )}
             </div>
-            {!props.alignReverse ? null : message.seen ? (
-              <span>✔️</span>
+            {!props.alignReverse ? null : props.seen ? (
+              
+              <DoneAllSharpIcon fontSize="small" color="primary"/>
             ) : (
-              <span>✓</span>
+              <DoneSharpIcon fontSize="small" />
             )}
           </div>
         </div>
       </div>
+      {hover && (
+          <DeleteDialog
+            index={props.index}
+            deleteMessage={props.deleteMessage}
+            delForEveryone={props.alignReverse}
+          />
+        )}
+    </div>
     </div>
   );
 };

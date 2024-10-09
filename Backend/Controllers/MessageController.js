@@ -41,7 +41,7 @@ exports.saveMessage = async (req, res) => {
         console.log("Error Query saving messages", err);
         return res.status(500).send("Error saving message");
       }
-      updateRoomLastMessage(message.message, message.roomId);
+      //updateRoomLastMessage(message.message, message.roomId);
       return res.status(200).send("Message Saved");
     });
   } catch (error) {

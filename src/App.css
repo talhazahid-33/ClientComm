@@ -125,17 +125,16 @@
 }
 
 .chat-page{
-    width: 90vw;  
-    height: 95vh;  
+     /* width: 95vw;    */
+     height: 100vh;   
+     overflow: hidden;
     margin: 0;
-    padding: 0;
-    padding-left: 8%;  
+    padding: 0;  
     display: flex;  
     flex-direction: column;
     justify-content: center; 
     align-items: center;    
-    background-color: #f9f9f9;
-    
+    background-color: black; 
 }
 
 .create-room{

@@ -1,20 +1,18 @@
 import React, { useEffect } from "react";
-import "./chatList.css"; // Import the CSS file
+import "./chatList.css"; 
+import { Avatar } from "@mui/material";
 
-const ChatUsersList = ({ username, room, onButtonClick }) => {
+const ChatUsersList = ({ username }) => {
   useEffect(() => {
   }, []);
   return (
     <div className="user-list-container">
-      <div className="user-list">
-        <div className="username-item">
+        <div>
+          <Avatar>{username[0]}</Avatar>
+        </div>
+        <div style={{fontSize:'20px', marginLeft:'5px'}} >
           {username}
         </div>
-      </div>
-
-      <button onClick={onButtonClick} className="action-button">
-        ADD
-      </button>
     </div>
   );
 };

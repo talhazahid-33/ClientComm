@@ -7,6 +7,7 @@ const FileInput = (props) => {
   const fileInputRef = useRef(null); 
   const documentInputRef = useRef(null); 
   const videoInputRef = useRef(null);
+  const audioInputRef = useRef(null);
 
   const handleAttachmentClick = () => {
     setShowOptions((prev) => !prev);
@@ -21,6 +22,9 @@ const FileInput = (props) => {
     }
     else if(type === 'Video'){
       videoInputRef.current.click();
+    }
+    else if(type === 'Audio'){
+      audioInputRef.current.click();
     }
   };
 
@@ -38,6 +42,10 @@ const FileInput = (props) => {
       else if(type === 'Video'){
         console.log("Selected Video ",file);
         props.handleSelectedFile("video",file);
+      }
+      else if(type === 'Audio'){
+        console.log("Selected Audio ",file);
+        props.handleSelectedFile("audio",file);
       }
 
     }
@@ -58,6 +66,9 @@ const FileInput = (props) => {
           </div>
           <div style={styles.option} onClick={() => handleOptionSelect('Document')}>
             📄 Document
+          </div>
+          <div style={styles.option} onClick={() => handleOptionSelect('Audio')}>
+            🎵 Audio
           </div>
           
         </div>
@@ -86,6 +97,14 @@ const FileInput = (props) => {
         accept="video/*"
         hidden
       />
+      <input
+        type="file"
+        ref={audioInputRef}
+        onChange={(e) => handleFileChange(e, 'Audio')}
+        style={styles.fileInput}
+        accept="audio/*"
+        hidden
+      />
     </div>
   );
 };
@@ -107,8 +126,8 @@ const styles = {
   },
   options: {
     position: 'absolute',
-    top: '-80px',
-    right: '0px', 
+    top: '-170px',
+    right: '-30px', 
     backgroundColor: '#fff',
     border: '1px solid #ddd',
     borderRadius: '5px',

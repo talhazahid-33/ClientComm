@@ -285,7 +285,7 @@ exports.saveMessageFromSocket = async (message) => {
       message.sender,
       message.seen,
       message.message,
-      "text",
+      message.type,
     ];
     conn.query(query, values, (err, result) => {
       if (err) {
@@ -373,7 +373,7 @@ exports.updateSeenForAll = (username, roomId) => {
 exports.getRoomsByUsername = async (req, res) => {
   const username = req.body.username;
   try {
-    console.log("Room Ids : ", roomIds);
+    console.log("Room Ids : ", username);
     const query = `SELECT roomId FROM rooms WHERE username = ? `;
     const values = [username];
     conn.query(query, values, (err, result) => {
@@ -388,7 +388,6 @@ exports.getRoomsByUsername = async (req, res) => {
     res.status(500).send("Some Error Occured getRoomsByUsername");
   }
 };
-
 
 
 exports.getAllMessages = (req,res) => {

@@ -1,17 +1,16 @@
 const conn = require("../db");
 
-
 exports.getRoomMessages = async (req, res) => {
   console.log("Get Room Messages", req.body);
   try {
-    const {roomId,role} = req.body;
-    const query = `SELECT messageId, roomId, time, sender, seen, message, type, fileType, name, data
+    const { roomId, role } = req.body;
+    const query = `SELECT messageId, roomId, time, sender, seen, message, type, fileType, name, data , deleted
     FROM messages
     WHERE roomId = ? AND (owner = ? OR owner = 'both')
     ORDER BY createdAt ASC
   `;
-  
-    conn.query(query, [roomId,role], (err, result) => {
+
+    conn.query(query, [roomId, role], (err, result) => {
       if (err) {
         console.log("Error in getRoomMessages", err);
         return res.status(500).send("Error in getting Messages from room");
@@ -61,17 +60,15 @@ exports.deleteMessage = (messageId, role) => {
         return;
       }
       const currentOwner = rows[0].owner;
-      if (currentOwner === 'both') {
+      if (currentOwner === "both") {
         const updateQuery = `UPDATE Messages SET owner = ? WHERE messageId = ?`;
         conn.query(updateQuery, [role, messageId], (err, result) => {
           if (err) {
             console.error("Error updating message:", err);
             return;
           }
-          console.log("Owner updated to ",role);
         });
-      } 
-      else {
+      } else {
         const deleteQuery = `DELETE FROM Messages WHERE messageId = ?`;
         conn.query(deleteQuery, [messageId], (err, result) => {
           if (err) {
@@ -92,21 +89,40 @@ exports.deleteMessage = (messageId, role) => {
 };
 
 exports.deleteForEveryOne = (messageId) => {
-  const query = `Update Messages set message = ?,type = ? where messageId = ?`;
+  const query = `Update Messages set message = ?,type = ? , deleted = true where messageId = ?`;
   try {
-    conn.query(query, ["This message was deleted " ,"text",messageId], (err, result) => {
-      if (err) {
-        console.error("Error deleting  message:", err);
-        return;
+    conn.query(
+      query,
+      ["This message was deleted ", "text", messageId],
+      (err, result) => {
+        if (err) {
+          console.error("Error deleting  message:", err);
+          return;
+        }
+        if (result.affectedRows > 0) {
+          console.log("Message Deleted");
+        } else {
+          console.log("No message found with the given messageId");
+        }
       }
-      console.log(result.affectedRows);
-      if (result.affectedRows > 0) {
-        console.log("Message Deleted");
-      } else {
-        console.log("No message found with the given messageId");
-      }
-    });
+    );
   } catch (error) {
     console.error("Unexpected error at deleteMessage:", error);
   }
+};
+
+exports.updateMessageCount = async (roomId, readAll) => {
+  let query;
+  if (!readAll)
+    query = ` UPDATE rooms SET newMessages = newMessages + 1 WHERE roomId = ?`;
+  else query = `UPDATE rooms SET newMessages = 0 WHERE roomId = ?`;
+
+  conn.query(query, [roomId], (err, result) => {
+    if (err) {
+      console.log(err);
+      console.log("Database query failed");
+    } else {
+      console.log("Message Count Updated");
+    }
+  });
 };

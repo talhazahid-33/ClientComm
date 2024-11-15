@@ -5,35 +5,30 @@ import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import ChatTile from "./ChatList/TabTile";
 import axios from "axios";
-import TabPanelC from "./ChatList/TabPanel";
 import RoomCreation from "./ChatList/usersDialog";
 import ChatUsersList from "./ChatList/ChatUsers";
 import socket from "../Pages/sockets";
 import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { populateRooms, printRooms } from "../Redux/RoomsSlice";
 import ChatRoom from "./Chat/chatRoom";
 
 export default function ChatTab() {
-  const [value, setValue] = React.useState(0);
+  const [value, setValue] = React.useState();
   const [rooms, setRooms] = React.useState([]);
   const [roomID, setRoomID] = useState();
   const [usernames, setUsernames] = useState([]);
   const [roomUsername, setRoomUsername] = useState([]);
+  const [activeStatus , setActiveStatus] = useState("Offline");
 
-  const email = localStorage.getItem("email");
   const username = localStorage.getItem("username");
-  const dispatch = useDispatch();
-  //const selector = useSelector();
 
   const handleChange = (event, newValue) => {
-    console.log("New Value : ", newValue);
+    socket.emit("get_online_user",rooms[newValue].roomId);
     setValue(newValue);
     setRoomID(() => rooms[newValue].roomId);
     setRoomUsername(rooms[newValue].username);
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
-        room.roomId == rooms[newValue].roomId
+        room.roomId === rooms[newValue].roomId
           ? { ...room, newMessages: 0 }
           : room
       )
@@ -42,9 +37,10 @@ export default function ChatTab() {
 
   const updateNewMessageCount = (roomId) => {
     console.log("Update Count : ", roomId);
+    socket.emit("updateNewMessageCount",roomId);
     setRooms((prevRooms) =>
       prevRooms.map((room) =>
-        room.roomId == roomId
+        room.roomId === roomId
           ? { ...room, newMessages: room.newMessages + 1 }
           : room
       )
@@ -107,18 +103,6 @@ export default function ChatTab() {
     return usernames.filter((user) => user !== username);
   }
 
-  const getCurrentSqlTimestamp = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    const seconds = String(now.getSeconds()).padStart(2, "0");
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  };
-
   const UpdateRoomLastMessage = (roomId, msg, open) => {
     let updatedRoomIndex = -1;
     setRooms((prevRooms) =>
@@ -161,14 +145,29 @@ export default function ChatTab() {
       UpdateRoomLastMessage(data.roomId, data.message);
     };
 
+    const handleOnlineUser = (activeUser)=>{
+      activeUser ? setActiveStatus("Online") : setActiveStatus("Offline");
+    }
+
+    const handleUpdateOnlineStatus = (data)=>{
+      if(data.roomId === roomID){
+        setActiveStatus(data.status);
+      }
+
+    }
+
     socket.on("invite_to_room", handleInvitation);
     socket.on("update_room_last_message", handleRoomLastMessage);
+    socket.on("online_user",handleOnlineUser);
+    socket.on("update_online_status",handleUpdateOnlineStatus);
 
     return () => {
       socket.off("invite_to_room", handleInvitation);
       socket.off("join_room");
       socket.off("update_room_last_message", handleRoomLastMessage);
       socket.off("self_room");
+      socket.off("online_user",handleOnlineUser);
+      socket.off("update_online_status",handleUpdateOnlineStatus);
     };
   }, [rooms]);
 
@@ -183,9 +182,8 @@ export default function ChatTab() {
           />
         </div>
         <ChatUsersList
-          room={rooms}
-
-          username={!rooms ? "[Hamza , ALi]" : roomUsername}
+          activeStatus = {activeStatus}
+          username={!roomID ? "-1" : roomUsername}
         />
       </div>
 
@@ -223,14 +221,7 @@ export default function ChatTab() {
               />
             ))}
         </Tabs>
-        {/*
-        <TabPanelC
-          value={value}
-          roomid={roomID}
-          UpdateRoomLastMessage={UpdateRoomLastMessage}
-          updateNewMessageCount={updateNewMessageCount}
-          moveRoomToStart={moveRoomToStart}
-        ></TabPanelC>*/}
+        
         <ChatRoom
           roomid={roomID}
           UpdateRoomLastMessage={UpdateRoomLastMessage}

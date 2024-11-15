@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import ChatTab from "../Components/ChatTab";
 import socket from "./sockets";
 import { useDispatch } from "react-redux";
@@ -6,7 +6,6 @@ import { addMessages } from "../Redux/messagesSlice";
 import axios from "axios";
 
 const Chat = () => {
-  const username = localStorage.getItem("username");
   const dispatch = useDispatch();
   useEffect(() => {
     socket.emit("selfroom", "admin");
@@ -29,9 +28,7 @@ const Chat = () => {
 
   return (
     <div className="chat-page">
-      {/* <div> */}
         <ChatTab />
-      {/* </div> */}
     </div>
   );
 };

@@ -1,19 +1,23 @@
 import React, { useEffect } from "react";
-import "./chatList.css"; 
+import "./chatList.css";
 import { Avatar } from "@mui/material";
 
-const ChatUsersList = ({ username }) => {
-  useEffect(() => {
-  }, []);
+const ChatUsersList = ({ activeStatus, username }) => {
+  useEffect(() => {}, []);
   return (
     <div className="user-list-container">
-        <div>
-          <Avatar>{username[0]}</Avatar>
+    { username !== "-1"?<>
+      <div style={{display:'flex' , flexDirection:'row'}}>
+        <Avatar>{username[0]}</Avatar>
+        <div style={{ marginLeft: "5px" }}>
+          <p style={{ fontSize: "20px", margin: 0 }}>{username}</p>
+          <p style={{ fontSize: "10px", margin: 0 }}>{activeStatus}</p>
         </div>
-        <div style={{fontSize:'20px', marginLeft:'5px'}} >
-          {username}
-        </div>
+      </div>
+      </>:null
+    } 
     </div>
+
   );
 };
 

@@ -70,7 +70,7 @@ export default function DeleteDialog(props) {
               control={<Radio />}
               label="Delete for me"
             />
-            {props.delForEveryone && <FormControlLabel
+            {(props.delForEveryone && !props.deleted) && <FormControlLabel
               value="deleteForEveryone"
               control={<Radio />}
               label="Delete for everyone"

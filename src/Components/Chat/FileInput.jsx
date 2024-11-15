@@ -65,7 +65,7 @@ const FileInput = (props) => {
             🎥 Video
           </div>
           <div style={styles.option} onClick={() => handleOptionSelect('Document')}>
-            📄 Document
+            📄 Docs
           </div>
           <div style={styles.option} onClick={() => handleOptionSelect('Audio')}>
             🎵 Audio
@@ -126,7 +126,7 @@ const styles = {
   },
   options: {
     position: 'absolute',
-    top: '-170px',
+    top: '-50px',
     right: '-30px', 
     backgroundColor: '#fff',
     border: '1px solid #ddd',
@@ -136,9 +136,10 @@ const styles = {
   },
   option: {
     padding: '10px',
+
     cursor: 'pointer',
     borderBottom: '1px solid #ddd',
-    width: '130px',
+    width: '100px',
     textAlign: 'center',
   },
 };

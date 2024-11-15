@@ -1,11 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./chat.css";
 import DeleteDialog from "./DeleteDialog";
-import DoneAllSharpIcon from '@mui/icons-material/DoneAllSharp';
-import DoneSharpIcon from '@mui/icons-material/DoneSharp';
+import DoneAllSharpIcon from "@mui/icons-material/DoneAllSharp";
+import DoneSharpIcon from "@mui/icons-material/DoneSharp";
 
 const ChatMessage = (props) => {
   const [hover, setHover] = useState(false);
+  const { message } = props;
+  useEffect(()=>{
+   // console.log(props);
+    
+  })
+
   return (
     <div
       key={props.index}
@@ -22,8 +28,8 @@ const ChatMessage = (props) => {
       >
         <div className={`chat-container ${false ? "row-reverse" : ""}`}>
           <div className="upper-division">
-            <span className="email">{props.username}</span>
-            <span className="time">{props.time}</span>
+            <span className="email">{message.sender}</span>
+            <span className="time">{message.time}</span>
           </div>
 
           <div className="lower-division">
@@ -35,12 +41,15 @@ const ChatMessage = (props) => {
                 justifyContent: "space-between",
               }}
             >
-              <p className="p">{props.message}</p>
-              {!props.alignReverse ? null : props.seen ? (
-                <DoneAllSharpIcon fontSize="small" color="primary"/>
+              {!message.deleted ? (
+                <p className="p">{message.message}</p>
               ) : (
-                
-                <DoneSharpIcon fontSize="small"/>
+                <p className="deletedMessage">{message.message}</p>
+              )}
+              {!props.alignReverse ? null : message.seen ? (
+                <DoneAllSharpIcon fontSize="small" color="primary" />
+              ) : (
+                <DoneSharpIcon fontSize="small" />
               )}
             </div>
           </div>
@@ -48,6 +57,7 @@ const ChatMessage = (props) => {
         {hover && (
           <DeleteDialog
             index={props.index}
+            deleted={message.deleted}
             deleteMessage={props.deleteMessage}
             delForEveryone={props.alignReverse}
           />

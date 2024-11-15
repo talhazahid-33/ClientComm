@@ -3,9 +3,7 @@ const cors = require("cors");
 const path = require('path');
 const http = require("http");
 
-const controller = require("./Controllers/controller");
 const routes = require("./routes");
-
 const app = express();
 const server = http.createServer(app);
 

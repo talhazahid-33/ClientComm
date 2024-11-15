@@ -28,14 +28,19 @@ const LogIn = () => {
           password: formData.password,
         })
         .then((res) => {
+          console.log("res",res);
+          
           if (res.status === 200) {
-            localStorage.setItem("userId",res.data.data[0].userId);
+            localStorage.setItem("userId",res.data.data.userId);
             localStorage.setItem("email", formData.email);
-            localStorage.setItem("username", res.data.data[0].username);
+            localStorage.setItem("username", res.data.data.username);
             navigate("/chat");
           } else if (res.status === 404) {
             alert("Invalid Credentials");
-          } else {
+          } 
+          else if(res.status === 401)
+            alert("Incorrect Password");
+          else {
             alert("No such User Exists");
           }
         })

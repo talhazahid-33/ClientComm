@@ -1,34 +1,44 @@
 const conn = require("../db");
-
-//USers
+const bcrypt = require("bcrypt");
 
 exports.logIn = (req, res) => {
   console.log("Login");
   const { email, password } = req.body;
 
   try {
-    const query = `SELECT * FROM users WHERE email = ? AND password = ? `;
-    const values = [email, password];
+    const query = `SELECT * FROM users WHERE email = ?`;
+    const values = [email];
     conn.query(query, values, (err, result) => {
       if (err) {
         console.log("Error in query", err);
         return res.status(500).send("DB error in Login");
       }
-      console.log(result);
       if (result.length > 0) {
-        console.log("1");
-        return res.status(200).send({ data: result });
+        const data = result[0];
+        bcrypt.compare(password, data.password, (err, isMatch) => {
+          if (err) {
+            console.log("Error comparing passwords", err);
+            return res.status(500).send("Error during password comparison");
+          }
+          if (isMatch) {
+            return res.status(200).send({ data: data });
+          } else {
+            return res.status(401).send("Incorrect password");
+          }
+        });
       } else {
-        return res.status(404).send("No such User Exists");
+        return res.status(404).send("No such user exists");
       }
     });
   } catch (e) {
     res.status(500).json("Error");
   }
 };
-exports.signup = (req, res) => {
+
+exports.signup = async (req, res) => {
   console.log("SignUp");
   const { username, email, password } = req.body;
+  const hashedPassword = await hashPassword(password);
 
   try {
     const checkQuery = `SELECT * FROM users WHERE email = ?`;
@@ -41,7 +51,7 @@ exports.signup = (req, res) => {
         res.status(400).send("Already Exists");
       } else {
         const insertQuery = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
-        const values = [username, email, password];
+        const values = [username, email, hashedPassword];
         conn.query(insertQuery, values, (err, result) => {
           if (err) {
             console.log("Error inserting new user", err);
@@ -57,33 +67,35 @@ exports.signup = (req, res) => {
     res.status(500).json("Error");
   }
 };
+async function hashPassword(plainPassword) {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(plainPassword, saltRounds);
+  return hashedPassword;
+}
 
 exports.checkRoomExists = async (req, res) => {
   const { roomId } = req.body;
-  console.log("Check Room : ",req.body.roomId);
+  console.log("Check Room : ", req.body.roomId);
 
   try {
-    const query = 'SELECT COUNT(*) as count FROM rooms WHERE roomId = ?';
-    conn.query(query,[roomId],(err,result)=>{
-      if(err) return res.status(500).send("DB error occured");
-      console.log(result);
-       if(result[0].count > 0)
-        return res.status(200).send(true);
-       return res.status(400).send(false);
-    })
+    const query = "SELECT COUNT(*) as count FROM rooms WHERE roomId = ?";
+    conn.query(query, [roomId], (err, result) => {
+      if (err) return res.status(500).send("DB error occured");
+      if (result[0].count > 0) return res.status(200).send(true);
+      return res.status(400).send(false);
+    });
   } catch (error) {
     console.error("Error checking room existence:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 exports.createRoom = async (req, res) => {
   console.log("create room", req.body);
-  const { username,roomId } = req.body;
+  const { username, roomId } = req.body;
   if (!username) return res.status(500).send("No username received");
   const query = `INSERT into Rooms (roomId ,username) VALUES (?,?)`;
-  const values = [roomId ,username];
+  const values = [roomId, username];
   try {
     conn.query(query, values, (err, result) => {
       if (err) {
@@ -98,28 +110,6 @@ exports.createRoom = async (req, res) => {
   }
 };
 
-async function getUsernames(roomId) {
-  const query = `SELECT username FROM rooms WHERE roomId = ?`;
-  try {
-    return new Promise((resolve, reject) => {
-      conn.query(query, [roomId], (err, result) => {
-        if (err) {
-          console.log(err);
-          reject("-1");
-        } else if (result.length === 0) {
-          resolve([]);
-        } else {
-          const usernames = result.map((user) => user.username);
-          resolve(usernames);
-          resolve(result);
-        }
-      });
-    });
-  } catch (e) {
-    console.log(e);
-    return "-1";
-  }
-}
 exports.getRooms = async (req, res) => {
   console.log("Get rooms");
   try {
@@ -154,7 +144,6 @@ exports.getRoomIds = async () => {
 async function updateRoomLastMessage(message, roomId) {
   const query = `UPDATE Rooms SET lastMessage = ? WHERE roomId = ?`;
   const values = [message, roomId];
-
   try {
     conn.query(query, values, (err, result) => {
       if (err) {
@@ -164,7 +153,6 @@ async function updateRoomLastMessage(message, roomId) {
       if (result.affectedRows === 0) {
         console.log("No room to update Last Message");
       }
-
       console.log("Last message updated successfully");
     });
   } catch (error) {
@@ -195,17 +183,16 @@ exports.getAllUsernames = async (req, res) => {
     const query = `SELECT username FROM users`;
     conn.query(query, (err, result) => {
       if (err) {
-        console.log("Error getting users", err);
+        console.log("Query Error getting users", err);
         return res.status(500).send("Error getting users");
       }
       const usernames = result.map((user) => user.username);
-
       return res.status(200).send({ data: usernames });
     });
   } catch (error) {
     console.error("Error getting users ", error);
-  }
-};
+  } 
+}; 
 
 exports.saveFiles = async (message) => {
   try {
@@ -239,7 +226,7 @@ exports.saveFiles = async (message) => {
 
 exports.getFiles = async (req, res) => {
   const { roomId } = req.body;
-  console.log("getFiles : ",roomId);
+  console.log("getFiles : ", roomId);
   try {
     const query = `
       SELECT messageId, roomId, time, sender, seen, fileName, fileType, Data, type
@@ -263,10 +250,12 @@ exports.getFiles = async (req, res) => {
         file: {
           type: file.fileType,
           name: file.fileName,
-          data: `data:${file.fileType};base64,${Buffer.from(file.Data).toString('base64')}`
+          data: `data:${file.fileType};base64,${Buffer.from(file.Data).toString(
+            "base64"
+          )}`,
         },
       }));
-      res.status(200).send({data:formattedFiles});
+      res.status(200).send({ data: formattedFiles });
     });
   } catch (error) {
     console.error("Error occurred: ", error);
@@ -290,6 +279,7 @@ exports.saveMessageFromSocket = async (message) => {
     conn.query(query, values, (err, result) => {
       if (err) {
         console.log("Error Query saving messages", err);
+        return;
       }
       updateRoomLastMessage(message.message, message.roomId);
     });
@@ -298,12 +288,9 @@ exports.saveMessageFromSocket = async (message) => {
   }
 };
 
-
 exports.saveFileFromSocket = async (message) => {
-  //console.log("Save File in DB from Socket", message);
   try {
     console.log("saving File: ");
-    //const fileBuffer = Buffer.from(message.data, "base64");
     const query = `insert into messages (messageId,roomid,time,sender,seen,type,fileType,name,data) values (?,?,?,?,?,?,?,?,?)`;
     const values = [
       message.messageId,
@@ -319,8 +306,9 @@ exports.saveFileFromSocket = async (message) => {
     conn.query(query, values, (err, result) => {
       if (err) {
         console.log("Error Query saving messages", err);
+        return;
       }
-      //updateRoomLastMessage(message.message, message.roomId);
+      updateRoomLastMessage(message.name, message.roomId);
     });
   } catch (error) {
     console.error("Error saving message:", error);
@@ -334,12 +322,12 @@ exports.updateSeen = (msgId) => {
     conn.query(query, [msgId], (err, result) => {
       if (err) {
         console.log("Erro in Seen status Update", err);
+        return;
       }
-
       if (result.affectedRows === 0) {
         console.log("Nothing to update");
+        return;
       }
-
       console.log("Seen updated successfully");
     });
   } catch (error) {
@@ -354,13 +342,13 @@ exports.updateSeenForAll = (username, roomId) => {
     conn.query(query, [username, roomId], (err, result) => {
       if (err) {
         console.error("Error in updating Seen status for all", err);
+        return;
       }
       if (result.affectedRows === 0) {
         console.log("No messages to update for !sender:", username);
+        return;
       }
-      console.log(
-        "Seen status updated successfully for all messages except sender"
-      );
+      console.log("Seen status updated successfully for all messages except sender");
     });
   } catch (error) {
     console.error(
@@ -389,13 +377,11 @@ exports.getRoomsByUsername = async (req, res) => {
   }
 };
 
-
-exports.getAllMessages = (req,res) => {
-
+exports.getAllMessages = (req, res) => {
   try {
     const query = `select messageId ,roomId, time, sender, seen, message, type,fileType,name,data from messages ORDER BY createdAt ASC`;
 
-    conn.query(query,  (err, result) => {
+    conn.query(query, (err, result) => {
       if (err) {
         console.log("Error in getAllMessages", err);
         return res.status(500).send("Error in getting all Messages");
@@ -405,6 +391,4 @@ exports.getAllMessages = (req,res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to retrieve all Messages" });
   }
-
-
-}
+};

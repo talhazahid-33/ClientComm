@@ -4,6 +4,9 @@ const controller = require("./Controllers/controller");
 const fileController = require("./Controllers/fileController");
 const fileHandler = require('./Controllers/fileHandler');
 const messageController = require('./Controllers/MessageController');
+
+const middleware = require('./middleware');
+
 router.use(express.json());
 
 //Users

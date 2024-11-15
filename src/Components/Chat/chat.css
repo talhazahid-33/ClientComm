@@ -49,6 +49,11 @@
   white-space: normal;
   overflow-wrap: break-word;
 }
+.deletedMessage{
+  color: #757575;
+  font-style: italic;
+  font-size: 14px;
+}
 
 .enter-message {
   padding: 10px 15px;
@@ -65,13 +70,6 @@
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
 }
 
-.send-div {
-  background-color: #ccc;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  bottom: 0;
-}
 
 .input-message-div {
   display: flex;
@@ -109,8 +107,6 @@
   align-self: flex-end;
 }
 
-.email-heading {}
-
 
 .chat-send-message {
   display: flex;
@@ -120,17 +116,14 @@
   margin: 0 auto;
   border-radius: 10px;
   border: 1px solid #ddd;
-  height: 150px;
-  width: 100%;
+  flex-grow: 1;
+  overflow: hidden;
 }
 
 
 .ticks{
   font-size: medium;
 }
-
-
-.file-container {}
 
 .file-select-modal {
   position: fixed;
@@ -185,4 +178,30 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
+}
+
+
+.welcome-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; 
+  text-align: center;
+  background-color: #f0f0f0; 
+}
+
+.invite-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 200px;
+  background-color: #f0f0f0; 
+}
+
+.invite{
+    font-size: 3rem; 
+    color: #333; 
+    font-family: Arial, sans-serif;
+  
 }

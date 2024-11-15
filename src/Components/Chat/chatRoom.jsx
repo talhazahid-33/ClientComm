@@ -6,7 +6,14 @@ import { v4 as uuid } from "uuid";
 import FileTile from "./fileTile";
 import FileInput from "./FileInput";
 import { useDispatch, useSelector } from "react-redux";
-import { addMessage, selectMessagesByRoomId } from "../../Redux/messagesSlice";
+import {
+  addMessage,
+  deleteForEveryone,
+  removeMessage,
+  selectMessagesByRoomId,
+  updateSeen,
+  updateSeenForAll,
+} from "../../Redux/messagesSlice";
 import VideoTile from "./videoTile";
 import VoiceMessage from "./AudioMessage";
 import AudioTile from "./AudioTile";
@@ -24,10 +31,10 @@ const ChatRoom = (props) => {
   const chatContainerRef = useRef(null);
   const messageRef = useRef(null);
 
-
-  const msgs = useSelector((state) => selectMessagesByRoomId(state, props.roomid));
+  const msgs = useSelector((state) =>
+    selectMessagesByRoomId(state, props.roomid)
+  );
   const dispatch = useDispatch();
-   // const msgs = useSelector((state)=>state.messages);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -40,20 +47,19 @@ const ChatRoom = (props) => {
   }, [roomItems]);
 
   useEffect(() => {
-    getRoomItems();
-    //console.log("Ret Msgs : ", messages);
-    console.log("Msgs : ", msgs);
-    //setRoomItems(messages);
+    //getRoomItems();
     setRoomID(props.roomid);
-    //setRoomItems(msgs);
-
+    setRoomItems(msgs);
+    socket.emit("update_seen_for_all_admin", {
+      username: username,
+      roomId: props.roomid,
+    });
   }, [props.roomid]);
-
 
   useEffect(() => {
     const handleReceiveMessage = (data) => {
       console.log("Msg Received");
-      
+
       dispatch(addMessage(data));
       if (data.roomId === props.roomid) {
         if (data.message)
@@ -75,9 +81,12 @@ const ChatRoom = (props) => {
 
     const handleSeenUpdate = (data) => {
       console.log("handleSeenUpdate ", data);
+      dispatch(updateSeen(data));
+      if (data.roomId !== props.roomid) return;
+
       setRoomItems((prevMessages) =>
         prevMessages.map((message) =>
-          message.messageId == data.messageId
+          message.messageId === data.messageId
             ? { ...message, seen: true }
             : message
         )
@@ -86,6 +95,9 @@ const ChatRoom = (props) => {
 
     const handleSeenUpdateForAll = (data) => {
       console.log("Handle seen update for All", data);
+      console.log(data);
+
+      dispatch(updateSeenForAll(data));
       if (data.roomId === props.roomid) {
         setRoomItems((prevRoomItems) =>
           prevRoomItems.map((message) =>
@@ -154,14 +166,37 @@ const ChatRoom = (props) => {
   };
 
   const sendMessage = async (audioFile) => {
+    console.log("Send");
+
     const time = getCurrentTime();
     try {
-      if (selectedFile) {
+      if (message !== "") {
+        const newMessage = {
+          messageId: uuid(),
+          type: "text",
+          sender: username,
+          seen: false,
+          deleted:false,
+          roomId: props.roomid,
+          message: message,
+          time: time,
+          data: null,
+          fileType: null,
+          name: null,
+        };
+        socket.emit("send_message_admin", newMessage);
+        setRoomItems((prevItems) => [...prevItems, newMessage]);
+        dispatch(addMessage(newMessage));
+        props.UpdateRoomLastMessage(props.roomid, newMessage.message, true);
+        setMessage("");
+      }
+      else if (selectedFile) {
         const path = await uploadFile(selectedFile);
         const newMessage = {
           messageId: uuid(),
           sender: username,
           seen: false,
+          deleted:false,
           roomId: props.roomid,
           fileType: selectedFile.type,
           message: null,
@@ -178,7 +213,7 @@ const ChatRoom = (props) => {
         setSelectedFileName("");
 
         return;
-      } else if (audioFile) {
+      } else if (audioFile !== null) {
         console.log("elseif");
         console.log("Send Voice Message : ", audioFile);
         const path = await uploadFile(audioFile);
@@ -186,6 +221,7 @@ const ChatRoom = (props) => {
           messageId: uuid(),
           sender: username,
           seen: false,
+          deleted:false,
           roomId: props.roomid,
           fileType: audioFile.type,
           message: null,
@@ -200,24 +236,7 @@ const ChatRoom = (props) => {
         props.UpdateRoomLastMessage(props.roomid, newMessage.name);
         return;
       }
-      if (message === "") return;
-      const newMessage = {
-        messageId: uuid(),
-        type: "text",
-        sender: username,
-        seen: false,
-        roomId: props.roomid,
-        message: message,
-        time: time,
-        data: null,
-        fileType: null,
-        name: null,
-      };
-      socket.emit("send_message_admin", newMessage);
-      setRoomItems((prevItems) => [...prevItems, newMessage]);
-      dispatch(addMessage(newMessage));
-      props.UpdateRoomLastMessage(props.roomid, newMessage.message, true);
-      setMessage("");
+      
     } catch (error) {
       console.log("Error sending Message");
     }
@@ -255,53 +274,67 @@ const ChatRoom = (props) => {
     return str.length > 20 ? str.substring(0, 20) + "..." : str;
   }
   const deleteMessage = (selectedOption, index) => {
-    console.log("Lets delete ", index, selectedOption);
     const message = roomItems[index];
     if (selectedOption === "deleteForMe") {
+      dispatch(removeMessage(roomItems[index]));
       setRoomItems((prevItems) => {
         return prevItems.filter((_, i) => i !== index);
       });
       socket.emit("delete_message_admin", message.messageId);
     } else if (selectedOption === "deleteForEveryone") {
+    
+      dispatch(deleteForEveryone(roomItems[index]));
       setRoomItems((prevRoomItems) =>
         prevRoomItems.map((item, i) =>
-          i === index ? { ...item, message: "This message was deleted" } : item
+          i === index
+            ? {
+                ...item,
+                type: "text",
+                message: "This message was deleted",
+                data: null,
+                deleted: 1,
+              }
+            : item
         )
       );
       socket.emit("delete_for_everyone_admin", message);
     }
   };
   return (
-    <div style={{ flex: 0.7 }}>
+    <div key={props.roomid} style={{ flex: 0.7 }}>
       <div className="chat-parent-container" ref={chatContainerRef}>
+        {!roomID && (
+          <>
+            <div className="welcome-container">
+              <h1 className="invite">Welcome to Client Comm</h1>
+            </div>
+          </>
+        )}
         {roomItems.map((msg, index) => {
           if (msg.type === "text") {
             return (
               <ChatMessage
+                key={index}
                 index={index}
-                username={msg.sender}
-                time={msg.time}
-                message={msg.message}
-                seen={msg.seen}
+                message={msg}
                 alignReverse={username === msg.sender}
                 deleteMessage={deleteMessage}
               />
             );
           } else if (msg.type === "video") {
             return (
-              <>
                 <VideoTile
+                  key={index}
                   index={index}
                   message={msg}
                   alignReverse={username === msg.sender}
                   deleteMessage={deleteMessage}
                 />
-              </>
             );
-          } else if (msg.type === "image" || msg.type === 'document')
+          } else if (msg.type === "image" || msg.type === "document")
             return (
-              <>
                 <FileTile
+                  key={index}
                   index={index}
                   path={msg.data}
                   type={msg.type}
@@ -312,12 +345,11 @@ const ChatRoom = (props) => {
                   alignReverse={username === msg.sender}
                   deleteMessage={deleteMessage}
                 />
-              </>
             );
           else {
             return (
-              <>
                 <AudioTile
+                  key={index}
                   index={index}
                   url={msg.data}
                   type={msg.type}
@@ -328,40 +360,47 @@ const ChatRoom = (props) => {
                   alignReverse={username === msg.sender}
                   deleteMessage={deleteMessage}
                 />
-              </>
             );
           }
         })}
         <br />
       </div>
-      <div className="chat-send-message">
-        <div className="input-message-div">
-          <div style={{ display: "flex", flex: "1" }}>
-            <input
-              className="enter-message"
-              type="text"
-              placeholder="Type Something "
-              value={message}
-              ref={messageRef}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyUp={(e) => {
-                if (e.key === "Enter") sendMessage();
-              }}
-            ></input>
-            <VoiceMessage handleVoiceMessage={handleVoiceMessage} />
+      {roomID ? (
+        <div className="chat-send-message">
+          <div className="input-message-div">
+            <div style={{ display: "flex", flex: "1" }}>
+              <input
+                className="enter-message"
+                type="text"
+                placeholder="Type Something "
+                value={message}
+                ref={messageRef}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyUp={(e) => {
+                  if (e.key === "Enter") sendMessage();
+                }}
+              ></input>
+              <VoiceMessage handleVoiceMessage={handleVoiceMessage} />
+            </div>
+            <FileInput handleSelectedFile={handleSelectedFile} />
+            {selectedFileName && (
+              <p style={{ marginTop: "15px", fontSize: "10px" }}>
+                {truncateString(selectedFileName)}
+              </p>
+            )}
           </div>
-          <FileInput handleSelectedFile={handleSelectedFile} />
-          {selectedFileName && (
-            <p style={{ marginTop: "15px", fontSize: "10px" }}>
-              {truncateString(selectedFileName)}
-            </p>
-          )}
+          <br />
+          <button className="btn btn-primary" onClick={sendMessage}>
+            Send
+          </button>
         </div>
-        <br />
-        <button className="btn btn-primary" onClick={sendMessage}>
-          Send
-        </button>
-      </div>
+      ) : (
+        <>
+          <div className="invite-container">
+            <h3>Select a Room to start chat with</h3>
+          </div>
+        </>
+      )}
     </div>
   );
 };

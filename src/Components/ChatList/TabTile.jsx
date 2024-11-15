@@ -19,7 +19,6 @@ const ChatTile = ({ username, lastMessage, time, newMessages, index }) => {
       <div className="chat-time">
         <small>{time}</small>
         <br></br>
-        <small>{index}</small>
         <Badge color="success" badgeContent={newMessages}></Badge>
       </div>
     </div>

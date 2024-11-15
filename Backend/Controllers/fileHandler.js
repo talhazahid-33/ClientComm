@@ -66,7 +66,7 @@ const base64ToMulterMiddleware = (req, res, next) => {
 };
 
 exports.uploadFile = (req, res) => {
-  console.log("Upload Files ",req.body);
+  console.log("Upload Files ");
   base64ToMulterMiddleware(req, res, () => {
     upload(req, res, function (err) {
       if (err) {

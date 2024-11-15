@@ -49,7 +49,7 @@ const VoiceMessage = (props) => {
         stopStream();
         console.log("Pause : ", pause);
         if (!pause) {
-         // handleVoiceMessage(file);
+          // handleVoiceMessage(file);
         }
       };
     } catch (err) {
@@ -80,7 +80,7 @@ const VoiceMessage = (props) => {
 
   const pauseRecording = () => {
     console.log("Pausing Recording");
-    setPause(true);
+    setPause((prev) => !prev);
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
@@ -97,7 +97,7 @@ const VoiceMessage = (props) => {
     setPause(false);
   };
 
-  const sendRecording =  () => {
+  const sendRecording = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
